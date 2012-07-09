@@ -1,5 +1,3 @@
-This project has been developped on Linux. The installation instructions have been tested on Linux. If you need a local IRC server I recommend you ngIRCD, I made a post about it there: http://stackoverflow.com/questions/144049/recommended-irc-server-ircd-for-a-small-site/990201#990201
-
 1st step: configuring the database. I use PostgreSQL and I recommend it for this project.
 ----------------------------------------
 su postgres // This command need to be run as root.
