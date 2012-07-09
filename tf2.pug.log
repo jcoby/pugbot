@@ -7695,3 +7695,16 @@
 [Mon Jul  9 21:52:39 2012] <roody> !sub 1
 [Mon Jul  9 21:53:04 2012] <flcn> !add soldier
 [Mon Jul  9 21:53:04 2012] <PUG-MESSENGER3> 0,0111 user(s) subscribed: "flcn" "Lunacide" "LlorD" "Majesty" "(8,01C0,01)Titan" "(8,01C0,01)roody" "Bopper" "therealJoe" "wokmage" "(4,01M0,01)alona" "aidsss".
+[Mon Jul  9 21:55:54 2012] <aidsss> !players
+[Mon Jul  9 21:55:54 2012] <PUG-MESSENGER3> 0,01Demos: (30)Titan, (26)Bopper
+[Mon Jul  9 21:55:54 2012] <PUG-MESSENGER2> 0,01Medics: (29)alona
+[Mon Jul  9 21:55:54 2012] <PUG-MESSENGER1> 0,01Scouts: (22)LlorD, (23)Majesty, (27)roody
+[Mon Jul  9 21:55:54 2012] <PUG-MESSENGER4> 0,01Soldiers: (31)flcn, (24)Lunacide, (19)therealJoe, (28)wokmage, (16)aidsss
+[Mon Jul  9 21:55:54 2012] <PUG-MESSENGER3> 0,0111 user(s): (31)flcn, (24)Lunacide, (22)LlorD, (23)Majesty, (308,01C0,01)Titan, (278,01C0,01)roody, (26)Bopper, (19)therealJoe, (28)wokmage, (29)alona, (16)aidsss
+[Mon Jul  9 21:56:04 2012] <PUG-MESSENGER1> 0,01Game over on server "chicago3.tf2pug.com:27015", final score is: 11,0150,01 to 4,0120,01.
+[Mon Jul  9 21:56:06 2012] <botmode> !add soldier
+[Mon Jul  9 21:56:06 2012] <PUG-MESSENGER4> 0,0112 user(s) subscribed: "flcn" "Lunacide" "LlorD" "Majesty" "(8,01C0,01)Titan" "botmode" "(8,01C0,01)roody" "Bopper" "therealJoe" "wokmage" "(4,01M0,01)alona" "aidsss".
+[Mon Jul  9 21:56:08 2012] <botmode> !stv
+[Mon Jul  9 21:56:14 2012] <botmode> how can I get stv?
+[Mon Jul  9 21:56:17 2012] <yesthisiscat> !add scout
+[Mon Jul  9 21:56:17 2012] <PUG-MESSENGER2> 0,0113 user(s) subscribed: "flcn" "Lunacide" "LlorD" "botmode" "Majesty" "(8,01C0,01)Titan" "yesthisiscat" "(8,01C0,01)roody" "Bopper" "therealJoe" "wokmage" "(4,01M0,01)alona" "aidsss".
