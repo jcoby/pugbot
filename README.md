@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 How To Run
 
 1.Install the necessary files:
@@ -6,6 +7,10 @@ postgresql-server
 psycopg2 (aptitude install python-psycopg2)
 
 2.Create the database:
+=======
+
+su postgres // This command need to be run as root.
+>>>>>>> f4b35f9c62d0d745b365f0902d7db97d84257299
 psql -c "CREATE USER tf2ib WITH PASSWORD 'jw8s0F4'"
 psql -c "CREATE DATABASE tf2ib"
 psql tf2ib < database.sql
@@ -18,6 +23,10 @@ psql tf2ib < sample.sql // Run this command only if you want to populate your da
 ./run.sh send.py PUG-MESSENGER
 ./run.sh send.py PUG-MESSENGER2
 (you probably need at least 3 messengers)
+=======
+aptitude install python-psycopg2 // You can use apt-get or yum, as long as you install properly the pyscopg2 library you are good to go.
+./pug.py
+./send.py PUG-MESSENGER // The second argument is the nickname of your messenger.
 
 Files:
 BeautifulSoup.py // Library used to parse HTLM, it's only used on the ESEA bot.
