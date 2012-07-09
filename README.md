@@ -4,8 +4,6 @@ psql -c "CREATE USER tf2ib WITH PASSWORD 'jw8s0F4'"
 psql -c "CREATE DATABASE tf2ib"
 psql tf2ib < database.sql
 psql tf2ib < sample.sql // Run this command only if you want to populate your database with testing data.
-
-2nd step: installing the necessary library and running the scripts. Before running those 2 scripts you need to change the value of some variabbles in the file "config.py"
 ----------------------------------------
 aptitude install python-psycopg2 // You can use apt-get or yum, as long as you install properly the pyscopg2 library you are good to go.
 ./pug.py
