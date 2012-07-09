@@ -1,4 +1,3 @@
-1st step: configuring the database. I use PostgreSQL and I recommend it for this project.
 ----------------------------------------
 su postgres // This command need to be run as root.
 psql -c "CREATE USER tf2ib WITH PASSWORD 'jw8s0F4'"
