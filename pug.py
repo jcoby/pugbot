@@ -53,7 +53,7 @@ def add(userName, userCommand):
                 if classCount('demo') < 2 or classCount('scout') < 4 or classCount('soldier') < 3:
                     return 0
                 if state == 'captain' and countCaptains() < 2:
-                    send("PRIVMSG " + config.channel + " :\x037,01Warning!\x030,01 This PUG needs 2 captains to start.")
+                    send("PRIVMSG " + config.channel + " :\x037,01Warning!\x030,01 This PUG need 2 captains to start.")
                     return 0
                 if len(findAwayUsers()) == 0:
                     initGame()
@@ -702,7 +702,7 @@ def ip(userName, userCommand):
     commandList = string.split(userCommand, ' ')
     if len(commandList) < 2:
         if gameServer != '':
-            message = "\x030,01Server IP: \"connect " + gameServer + "; password " + password + "\". Servers are provided by Command Channel: \x0307,01https://commandchannel.com/"
+            message = "\x030,01Server IP: \"connect " + gameServer + "; password " + password + ";\". Servers are provided by Command Channel: \x0307,01https://commandchannel.com/"
             send("PRIVMSG " + config.channel + " :" + message)
         return 0
     setIP(userName, userCommand)
@@ -957,7 +957,7 @@ def pick(userName, userCommand):
         return 0
     commandList = string.split(userCommand, ' ')
     if len(commandList) <= 2:
-        send("NOTICE " + userName + " : Error, your command has too few arguments. Here is an example of a valid \"!pick\" command: \"!pick 13 scout\".") 
+        send("NOTICE " + userName + " : Error, your command has too few arguments. Here is an example of a valid \"!pick\" command: \"!pick # scout\".") 
         return 0
     del commandList[0]
     assignToCaptain = 0
@@ -1017,7 +1017,7 @@ def pick(userName, userCommand):
         if assignToCaptain:
             clearCaptainsFromTeam(getPlayerTeam(userName))
             userList[commandList[0]]['status'] = 'captain'
-        send("NOTICE " + commandList[0] + " : " + getCaptainNameFromTeam(getOppositeTeam(getPlayerTeam(userName))) + " picked you as " + gameClass) 
+        send("NOTICE " + commandList[0] + " : " + getCaptainNameFromTeam(getPlayerTeam(userName)) + " picked you as " + gameClass) 
         send("NOTICE " + getCaptainNameFromTeam(getOppositeTeam(getPlayerTeam(userName))) + " : \x037" + userName + " picked " + commandList[0] + " as " + gameClass) 
         assignUserToTeam(gameClass, 0, getPlayerTeam(userName), userList[commandList[0]])
         if captainStage < (len(captainStageList) - 1):
@@ -1290,7 +1290,7 @@ def sendMessageToAwayPlayers():
     nickList = []
     for nick in awayList:
         nickList.append(nick)
-    send("PRIVMSG " + config.channel + " :\x038,01Warning!\x030,01 " + words[0] + " considered inactive by the bot: " + ", ".join(nickList) + ". If " + words[1] +" show any activity in the next minute " + words[2] + " will automatically be removed from the player list.")
+    send("PRIVMSG " + config.channel + " :\x038,01Warning!\x030,01 " + words[0] + " considered as inactive by the bot: " + ", ".join(nickList) + ". If " + words[1] +" show any activity in the next minute " + words[2] + " will automatically be removed from the player list.")
     for user in awayList:
         send("PRIVMSG " + user + ' :Warning, you are considered inactive by the bot and a pug you added to is starting. If you still want to play this pug type anything in the channel in the next minute otherwise you will be automatically removed.')
 
@@ -1302,7 +1302,7 @@ def sendStartPrivateMessages():
     for teamID in ['a', 'b']:
         team = getTeam(teamID)
         for user in team:
-            send("PRIVMSG " + user['nick'] + " :You have been assigned to the " + teamName[teamCounter] + " team. Connect as soon as possible to this TF2 server: \"connect " + gameServer + "; password " + password + ";\". Connect as well to the voIP server, for more information type \"!mumble\" in \"#tf2.pug\".")
+            send("PRIVMSG " + user['nick'] + " :You have been assigned to the " + teamName[teamCounter] + " team. Connect as soon as possible to this TF2 server: \"connect " + gameServer + "; password " + password + ";\". Connect as well to the voIP server, for more information type \"!mumble\" in \"#tf2.pug.na\".")
             userCounter += 1
         teamCounter += 1
 
