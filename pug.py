@@ -637,7 +637,7 @@ def getWinStats(userName):
 
 def help(userName, params):
     global adminCommands, userCommands
-    send("PRIVMSG " + config.channel + " : \x0311,01User related commands:\x030,01 !add, !game, !ip, !last, !limit, !list, !man, !mumble, !needsub, !players, !remove, !scramble, !stats, !status, !sub")
+    send("PRIVMSG " + config.channel + " : \x0311,01User related commands:\x030,01 !add, !game, !ip, !last, !limit, !list, !man, !mumble, !need, !needsub, !players, !remove, !scramble, !stats, !status, !sub")
     send("PRIVMSG " + config.channel + " : \x0311,01Captain related commands:\x030,01 !captain, !pick")
     if isAdmin(userName):
         send("PRIVMSG %s : \x0311,01Admin related commands:\x030,01 %s" % (config.channel, ", ".join(adminCommands)))
@@ -1381,6 +1381,29 @@ def sub(userName, userCommand):
     del(subList[subIndex])
     return 0
 
+def need(userName, params):
+    """display players needed"""
+    neededClasses = {}
+    numberOfPlayersPerClass = {'demo':2, 'medic':2, 'scout':4, 'soldier':4}
+    neededPlayers = 0
+    captainsNeeded = 0
+    for gameClass in classList:
+        if classCount(gameClass) < numberOfPlayersPerClass[gameClass]:
+            needed = numberOfPlayersPerClass[gameClass] - classCount(gameClass)
+            neededClasses[gameClass] = needed
+            neededPlayers = neededPlayers + needed
+
+    if state == 'captain' and countCaptains() < 2:
+        captainsNeeded = 2 - countCaptains()
+        
+    if neededPlayers == 0 and captainsNeeded == 0:
+        send("PRIVMSG %s : no players needed.")
+    else:
+        msg = ", ".join(['%s: %s' % (key, value) for (key, value) in neededClasses.items()])
+        if state == 'captain' and countCaptains() < 2:
+            msg = msg + ", captain: %d" % (captainsNeeded,)
+        send("PRIVMSG %s : %d player(s) needed: %s." % (config.channel, neededPlayers, msg))
+    
 def updateLast(ip, port, last):
     global botID, connection
     ip = getIPFromDNS(ip)
@@ -1472,7 +1495,7 @@ restart = 0
 scrambleList = []
 startGameTimer = threading.Timer(0, None)
 subList = []
-userCommands = ["!add", "!captain", "!game", "!ip", "!last", "!limit", "!list", "!man", "!mumble", "!needsub", "!pick", "!players", "!remove", "!scramble", "!stats", "!status", "!sub", "!whattimeisit"]
+userCommands = ["!add", "!captain", "!game", "!ip", "!last", "!limit", "!list", "!man", "!mumble", "!need", "!needsub", "!pick", "!players", "!remove", "!scramble", "!stats", "!status", "!sub", "!whattimeisit"]
 userLimit = 12
 userList = {}
 voiceServer = {'ip':'tf2pug.commandchannel.com', 'port':'31472'}
@@ -1496,6 +1519,7 @@ commandMap = {
     "!man": help,
     "!manual": manual,
     "!mumble": mumble,
+    "!need": need,
     "!needsub": needsub,
     #"!notice": notice,
     "!pick": pick,
