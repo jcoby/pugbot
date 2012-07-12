@@ -1363,6 +1363,10 @@ def status():
 
 def sub(userName, userCommand):
     global subList
+    if len(subList) == 0:
+        send("NOTICE %s :A sub is not needed at this time." % (userName,))
+        return
+        
     commandList = string.split(userCommand)
     id = ''
     for argument in commandList:
