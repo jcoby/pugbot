@@ -1071,24 +1071,24 @@ def printTeamsHandicaps():
 
 def listPlayers(userName, params):
     """display added users"""
-    printUserList()
+    message = "\x030,01" + str(len(userList)) + " user(s) subscribed:"
+    for i, user in userList.copy().iteritems():
+        userStatus = ''
+        if user['status'] == 'captain':
+            userStatus = '(\x038,01C\x030,01'
+        if user['class'] == ['medic']:
+            userStatus = '(\x034,01M\x030,01'
+        if user['status'] == 'captain' and user['class'] == ['medic']:
+            userStatus = '(\x034,01M\x030\x038,01C\x030,01'
+        if userStatus != '':
+            userStatus = userStatus + ')'
+        message += ' "' + userStatus + user['nick'] + '"'
+    send("PRIVMSG " + config.channel + " :" + message + ".")
     
 def printUserList():
     global lastUserPrint, printTimer, state, userList
     if (time.time() - lastUserPrint) > 5:
-        message = "\x030,01" + str(len(userList)) + " user(s) subscribed:"
-        for i, user in userList.copy().iteritems():
-            userStatus = ''
-            if user['status'] == 'captain':
-                userStatus = '(\x038,01C\x030,01'
-            if user['class'] == ['medic']:
-                userStatus = '(\x034,01M\x030,01'
-            if user['status'] == 'captain' and user['class'] == ['medic']:
-                userStatus = '(\x034,01M\x030\x038,01C\x030,01'
-            if userStatus != '':
-                userStatus = userStatus + ')'
-            message += ' "' + userStatus + user['nick'] + '"'
-        send("PRIVMSG " + config.channel + " :" + message + ".")
+        listPlayers('', '')
     else:
         printTimer.cancel()
         printTimer = threading.Timer(5, printUserList)
