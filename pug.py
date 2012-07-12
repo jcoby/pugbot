@@ -636,8 +636,8 @@ def getWinStats(userName):
     return [userName, 0, 0, 0, 0]
 
 def help(userName, params):
-    global adminCommands
-    send("PRIVMSG " + config.channel + " : \x0311,01User related commands:\x030,01 !add, !game, !ip, !last, !limit, !man, !mumble, !needsub, !players, !remove, !scramble, !stats, !status, !sub")
+    global adminCommands, userCommands
+    send("PRIVMSG " + config.channel + " : \x0311,01User related commands:\x030,01 !add, !game, !ip, !last, !limit, !list, !man, !mumble, !needsub, !players, !remove, !scramble, !stats, !status, !sub")
     send("PRIVMSG " + config.channel + " : \x0311,01Captain related commands:\x030,01 !captain, !pick")
     if isAdmin(userName):
         send("PRIVMSG %s : \x0311,01Admin related commands:\x030,01 %s" % (config.channel, ", ".join(adminCommands)))
@@ -1069,6 +1069,10 @@ def printTeamsHandicaps():
             winRatioOverall[teamIndex] = 100 * (float(handicapTotal[teamIndex] + gamesPlayedCounter[teamIndex]) / float(2 * gamesPlayedCounter[teamIndex]))
     print "Teams win ratios: \x0311,01" + str(int(winRatioOverall[0])) + "%\x030,01 / \x034,01" + str(int(winRatioOverall[1])) + "%"
 
+def listPlayers(userName, params):
+    """display added users"""
+    printUserList()
+    
 def printUserList():
     global lastUserPrint, printTimer, state, userList
     if (time.time() - lastUserPrint) > 5:
@@ -1468,7 +1472,7 @@ restart = 0
 scrambleList = []
 startGameTimer = threading.Timer(0, None)
 subList = []
-userCommands = ["!add", "!captain", "!game", "!ip", "!last", "!limit", "!man", "!mumble", "!needsub", "!pick", "!players", "!remove", "!scramble", "!stats", "!status", "!sub", "!whattimeisit"]
+userCommands = ["!add", "!captain", "!game", "!ip", "!last", "!limit", "!list", "!man", "!mumble", "!needsub", "!pick", "!players", "!remove", "!scramble", "!stats", "!status", "!sub", "!whattimeisit"]
 userLimit = 12
 userList = {}
 voiceServer = {'ip':'tf2pug.commandchannel.com', 'port':'31472'}
@@ -1488,6 +1492,7 @@ commandMap = {
     "!ip": ip,
     "!last": last,
     "!limit": limit,
+    "!list": listPlayers,
     "!man": help,
     "!manual": manual,
     "!mumble": mumble,
