@@ -26,12 +26,11 @@ def add(userName, userCommand):
       #      send("NOTICE " + userName + " : You must be authorized by an admin to PUG here. Ask any peons or any admins to allow you the access to add to the PUGs. The best way to do it is by asking directly in the channel or by asking a friend that has the authorization to do it. If you used to have access, type \"!stats me\" in order to find who deleted your access and talk with him in order to get it back.")
        #     return 0
         if state == 'captain' or state == 'highlander' or state == 'normal':
-            remove(userName, 0)
+            remove(userName, printUsers=0)
             if ((len(userList) == (userLimit -1) and classCount('medic') == 0) or (len(userList) == (userLimit -1) and classCount('medic') <= 1)) and not isMedic(userCommand):
                 if not isUser(userName) and userAuthorizationLevel == 3:
                     userLimit = userLimit + 1
                 elif not isUser(userName):
-                    stats(userName, "!stats " + userName)
                     send("NOTICE " + userName + " : The only class available is medic. Type \"!add medic\" to join this round as this class.")
                     return 0
             if userAuthorizationLevel == 3 and not isUser(userName) and len(userList) == userLimit:
@@ -327,7 +326,7 @@ def drop(connection, event):
         userName = event.arguments()[0]
     else:
         userName = extractUserName(event.source())
-    remove(userName, '')
+    remove(userName)
 
 def endGame(userName, params):
     global gameServer, initTimer, state
@@ -756,13 +755,13 @@ def initGame():
         state = 'picking'
         initTimer = threading.Timer(45, assignCaptains, ['captain'])
         initTimer.start()
-        players(nick)
+        players(nick, '')
     elif state == "scrim":
         send("PRIVMSG " + config.channel + " :\x038,01Team is being drafted, please wait in the channel until this process is over.")
         state = 'picking'
         initTimer = threading.Timer(45, assignCaptains, ['scrim'])
         initTimer.start()
-        players(nick)
+        players(nick, '')
 
 def initServer():
     global gameServer, lastGame
@@ -1070,42 +1069,31 @@ def printTeamsHandicaps():
     print "Teams win ratios: \x0311,01" + str(int(winRatioOverall[0])) + "%\x030,01 / \x034,01" + str(int(winRatioOverall[1])) + "%"
 
 def listPlayers(userName, params):
+    """display added users"""
     message = "\x030,01" + str(len(userList)) + " user(s) subscribed:"
     for i, user in userList.copy().iteritems():
-            userStatus = ''
-            if user['status'] == 'captain':
-                userStatus = '(\x038,01C\x030,01'
-            if user['class'] == ['medic']:
-                userStatus = '(\x034,01M\x030,01'
-            if user['status'] == 'captain' and user['class'] == ['medic']:
-                userStatus = '(\x034,01M\x030\x038,01C\x030,01'
-            if userStatus != '':
-                userStatus = userStatus + ')'
-            message += ' "' + userStatus + user['nick'] + '"'
+        userStatus = ''
+        if user['status'] == 'captain':
+            userStatus = '(\x038,01C\x030,01'
+        if user['class'] == ['medic']:
+            userStatus = '(\x034,01M\x030,01'
+        if user['status'] == 'captain' and user['class'] == ['medic']:
+            userStatus = '(\x034,01M\x030\x038,01C\x030,01'
+        if userStatus != '':
+            userStatus = userStatus + ')'
+        message += ' "' + userStatus + user['nick'] + '"'
     send("PRIVMSG " + config.channel + " :" + message + ".")
-		
+    
 def printUserList():
     global lastUserPrint, printTimer, state, userList
     if (time.time() - lastUserPrint) > 5:
-        message = "\x030,01" + str(len(userList)) + " user(s) subscribed:"
-        for i, user in userList.copy().iteritems():
-            userStatus = ''
-            if user['status'] == 'captain':
-                userStatus = '(\x038,01C\x030,01'
-            if user['class'] == ['medic']:
-                userStatus = '(\x034,01M\x030,01'
-            if user['status'] == 'captain' and user['class'] == ['medic']:
-                userStatus = '(\x034,01M\x030\x038,01C\x030,01'
-            if userStatus != '':
-                userStatus = userStatus + ')'
-            message += ' "' + userStatus + user['nick'] + '"'
-        send("PRIVMSG " + config.channel + " :" + message + ".")
+        listPlayers('', '')
     else:
         printTimer.cancel()
         printTimer = threading.Timer(5, printUserList)
         printTimer.start()
     lastUserPrint = time.time()
-    
+
 def protect(userName, userCommand):
     authorize(userName, userCommand, 2)
 
@@ -1116,8 +1104,8 @@ def replace(userName, userCommand):
     if len(commandList) < 2:
         send("NOTICE " + userName + " : Error, there is not enough arguments in your \"!replace\" command. Example: \"!replace toreplace substitute\".")
         return 0
-    toReplace = commandList[1]
-    substitute = commandList[2]
+    toReplace = commandList[0]
+    substitute = commandList[1]
     for teamName in teamList:
         if type(toReplace) == type({}):
             break
@@ -1145,7 +1133,7 @@ def replace(userName, userCommand):
         send("NOTICE " + userName + " : Error, the substitute you specified is not in the subscribed list.")
     return 0
 
-def remove(userName, params, printUsers = 1):
+def remove(userName, params='', printUsers = 1):
     global initTimer, state, userLimit, userList
     if(isUser(userName)) and (state == 'picking' or state == 'building'):
         send("NOTICE " + userName + " : Warning, you removed but the teams are getting drafted at the moment and there are still some chances that you will get in this PUG. Make sure you clearly announce to the users in the channel and to the captains that you may need a substitute.")
@@ -1408,12 +1396,12 @@ def need(userName, params):
         captainsNeeded = 2 - countCaptains()
         
     if neededPlayers == 0 and captainsNeeded == 0:
-        send("PRIVMSG %s : no players needed.")
+        send("PRIVMSG %s :\x030,01no players needed." % (config.channel,))
     else:
         msg = ", ".join(['%s: %s' % (key, value) for (key, value) in neededClasses.items()])
         if state == 'captain' and countCaptains() < 2:
             msg = msg + ", captain: %d" % (captainsNeeded,)
-        send("PRIVMSG %s : \x030,01%d player(s) needed: %s." % (config.channel, neededPlayers, msg))
+        send("PRIVMSG %s :\x030,01%d player(s) needed: %s" % (config.channel, neededPlayers, msg))
     
 def updateLast(ip, port, last):
     global botID, connection
@@ -1526,7 +1514,7 @@ commandMap = {
     "!ip": ip,
     "!last": last,
     "!limit": limit,
-    "!list": players,
+    "!list": listPlayers,
     "!man": help,
     "!manual": manual,
     "!mumble": mumble,
@@ -1534,7 +1522,7 @@ commandMap = {
     "!needsub": needsub,
     #"!notice": notice,
     "!pick": pick,
-    "!players": listPlayers,
+    "!players": players,
     "!protect": protect,
     "!replace": replace,
     "!remove": remove,
@@ -1576,4 +1564,3 @@ while not restart:
         autoGameStart()
 
 connectTimer.cancel()
-
