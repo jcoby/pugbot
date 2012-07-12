@@ -1397,7 +1397,7 @@ def need(userName, params):
         captainsNeeded = 2 - countCaptains()
         
     if neededPlayers == 0 and captainsNeeded == 0:
-        send("PRIVMSG %s : no players needed.")
+        send("PRIVMSG %s : no players needed." % (config.channel,))
     else:
         msg = ", ".join(['%s: %s' % (key, value) for (key, value) in neededClasses.items()])
         if state == 'captain' and countCaptains() < 2:
