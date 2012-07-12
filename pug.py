@@ -169,10 +169,7 @@ def assignUserToTeam(gameClass, recursiveFriend, team, user):
     else:
         user['class'] = []
     if not team:
-        if random.randint(0,1):
-            team = 'a'
-        else:
-            team = 'b'
+        team = random.choice(['a', 'b'])
     user['team'] = team
     # Assign the user to the team if the team's not full.
     if len(getTeam(team)) < getTeamSize(): # Debug : 6
