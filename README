@@ -21,7 +21,7 @@ psql tf2ib < sample.sql // Run this command only if you want to populate your da
 (you probably need at least 3 messengers)
 
 Files:
-config.py // Configuration file used by some scripts, you will probably set the variable values to what you need.
+config.py // Configuration file used by some scripts, you will need to set the variable values.
 data.sh // Script that is intended to run as a cron job on a TF2 server. It does copy the stats and STV files to the web server.
 database.sql // File used to create the tables for the bot database.
 irclib.py // Library used by the different bots to connect and communicate through the IRC protocol.
