@@ -26,12 +26,12 @@ def add(userName, userCommand):
       #      send("NOTICE " + userName + " : You must be authorized by an admin to PUG here. Ask any peons or any admins to allow you the access to add to the PUGs. The best way to do it is by asking directly in the channel or by asking a friend that has the authorization to do it. If you used to have access, type \"!stats me\" in order to find who deleted your access and talk with him in order to get it back.")
        #     return 0
         if state == 'captain' or state == 'highlander' or state == 'normal':
-            remove(userName, 0)
+            remove(userName, printUsers=0)
             if ((len(userList) == (userLimit -1) and classCount('medic') == 0) or (len(userList) == (userLimit -1) and classCount('medic') <= 1)) and not isMedic(userCommand):
                 if not isUser(userName) and userAuthorizationLevel == 3:
                     userLimit = userLimit + 1
                 elif not isUser(userName):
-                    stats(userName, "!stats " + userName)
+                    stats(userName, userName)
                     send("NOTICE " + userName + " : The only class available is medic. Type \"!add medic\" to join this round as this class.")
                     return 0
             if userAuthorizationLevel == 3 and not isUser(userName) and len(userList) == userLimit:
@@ -756,13 +756,13 @@ def initGame():
         state = 'picking'
         initTimer = threading.Timer(60, assignCaptains, ['captain'])
         initTimer.start()
-        players(nick)
+        players(nick, '')
     elif state == "scrim":
         send("PRIVMSG " + config.channel + " :\x038,01Team is being drafted, please wait in the channel until this process is over.")
         state = 'picking'
         initTimer = threading.Timer(60, assignCaptains, ['scrim'])
         initTimer.start()
-        players(nick)
+        players(nick, '')
 
 def initServer():
     global gameServer, lastGame
@@ -1105,8 +1105,8 @@ def replace(userName, userCommand):
     if len(commandList) < 2:
         send("NOTICE " + userName + " : Error, there is not enough arguments in your \"!replace\" command. Example: \"!replace toreplace substitute\".")
         return 0
-    toReplace = commandList[1]
-    substitute = commandList[2]
+    toReplace = commandList[0]
+    substitute = commandList[1]
     for teamName in teamList:
         if type(toReplace) == type({}):
             break
@@ -1134,7 +1134,7 @@ def replace(userName, userCommand):
         send("NOTICE " + userName + " : Error, the substitute you specified is not in the subscribed list.")
     return 0
 
-def remove(userName, params, printUsers = 1):
+def remove(userName, params='', printUsers = 1):
     global initTimer, state, userLimit, userList
     if(isUser(userName)) and (state == 'picking' or state == 'building'):
         send("NOTICE " + userName + " : Warning, you removed but the teams are getting drafted at the moment and there are still some chances that you will get in this PUG. Make sure you clearly announce to the users in the channel and to the captains that you may need a substitute.")
