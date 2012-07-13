@@ -31,7 +31,6 @@ def add(userName, userCommand):
                 if not isUser(userName) and userAuthorizationLevel == 3:
                     userLimit = userLimit + 1
                 elif not isUser(userName):
-                    stats(userName, userName)
                     send("NOTICE " + userName + " : The only class available is medic. Type \"!add medic\" to join this round as this class.")
                     return 0
             if userAuthorizationLevel == 3 and not isUser(userName) and len(userList) == userLimit:
@@ -745,22 +744,22 @@ def initGame():
         send("PRIVMSG " + config.channel + " :\x038,01Teams are being drafted, please wait in the channel until this process is over.")
         send("PRIVMSG " + config.channel + " :\x037,01If you find teams unfair you can type \"!scramble\" and they will be adjusted.")
         state = 'building'
-        initTimer = threading.Timer(20, buildTeams)
+        initTimer = threading.Timer(15, buildTeams)
         initTimer.start()
-        startGameTimer = threading.Timer(100, startGame)
+        startGameTimer = threading.Timer(45, startGame)
         startGameTimer.start()
     elif state == "captain":
         if countCaptains() < 2:
             return 0
         send("PRIVMSG " + config.channel + " :\x038,01Teams are being drafted, please wait in the channel until this process is over.")
         state = 'picking'
-        initTimer = threading.Timer(60, assignCaptains, ['captain'])
+        initTimer = threading.Timer(45, assignCaptains, ['captain'])
         initTimer.start()
         players(nick, '')
     elif state == "scrim":
         send("PRIVMSG " + config.channel + " :\x038,01Team is being drafted, please wait in the channel until this process is over.")
         state = 'picking'
-        initTimer = threading.Timer(60, assignCaptains, ['scrim'])
+        initTimer = threading.Timer(45, assignCaptains, ['scrim'])
         initTimer.start()
         players(nick, '')
 
@@ -1083,7 +1082,7 @@ def listPlayers(userName, params):
         if userStatus != '':
             userStatus = userStatus + ')'
         message += ' "' + userStatus + user['nick'] + '"'
-    send("PRIVMSG " + config.channel + " :" + message + ".")
+    send("PRIVMSG " + config.channel + " :" + message + "")
     
 def printUserList():
     global lastUserPrint, printTimer, state, userList
@@ -1397,12 +1396,12 @@ def need(userName, params):
         captainsNeeded = 2 - countCaptains()
         
     if neededPlayers == 0 and captainsNeeded == 0:
-        send("PRIVMSG %s : no players needed." % (config.channel,))
+        send("PRIVMSG %s :\x030,01no players needed." % (config.channel,))
     else:
         msg = ", ".join(['%s: %s' % (key, value) for (key, value) in neededClasses.items()])
         if state == 'captain' and countCaptains() < 2:
             msg = msg + ", captain: %d" % (captainsNeeded,)
-        send("PRIVMSG %s : %d player(s) needed: %s." % (config.channel, neededPlayers, msg))
+        send("PRIVMSG %s :\x030,01%d player(s) needed: %s" % (config.channel, neededPlayers, msg))
     
 def updateLast(ip, port, last):
     global botID, connection
@@ -1515,7 +1514,7 @@ commandMap = {
     "!ip": ip,
     "!last": last,
     "!limit": limit,
-    "!list": listPlayers,
+    "!list": players,
     "!man": help,
     "!manual": manual,
     "!mumble": mumble,
@@ -1523,7 +1522,7 @@ commandMap = {
     "!needsub": needsub,
     #"!notice": notice,
     "!pick": pick,
-    "!players": players,
+    "!players": listPlayers,
     "!protect": protect,
     "!replace": replace,
     "!remove": remove,
