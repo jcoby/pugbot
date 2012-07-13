@@ -1082,7 +1082,7 @@ def listPlayers(userName, params):
         if userStatus != '':
             userStatus = userStatus + ')'
         message += ' "' + userStatus + user['nick'] + '"'
-    send("PRIVMSG " + config.channel + " :" + message + ".")
+    send("PRIVMSG " + config.channel + " :" + message + "")
     
 def printUserList():
     global lastUserPrint, printTimer, state, userList
