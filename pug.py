@@ -1331,6 +1331,10 @@ def need(userName, params):
         if state == 'captain' and lobby.captain_count() < 2:
             msg = msg + ", captain: %d" % (captainsNeeded,)
         send("PRIVMSG %s :\x030,01%d player(s) needed: %s" % (config.channel, neededPlayers, msg))
+
+def afk(userName, params):
+    nick_list = [player.nick for player in lobby.afk_players()]
+    send("PRIVMSG " + config.channel + " :\x030,01AFK players: " + ", ".join(nick_list))
     
 def updateLast(ip, port, last):
     global botID, connection
@@ -1419,7 +1423,7 @@ restart = 0
 scrambleList = []
 startGameTimer = threading.Timer(0, None)
 subList = []
-userCommands = ["!add", "!captain", "!game", "!ip", "!last", "!limit", "!list", "!man", "!mumble", "!need", "!needsub", "!pick", "!players", "!remove", "!scramble", "!stats", "!status", "!sub", "!whattimeisit"]
+userCommands = ["!add", "!afk", "!captain", "!game", "!ip", "!last", "!limit", "!list", "!man", "!mumble", "!need", "!needsub", "!pick", "!players", "!remove", "!scramble", "!stats", "!status", "!sub", "!whattimeisit"]
 userLimit = 12
 voiceServer = {'ip':'tf2pug.commandchannel.com', 'port':'31472'}
 lobby = game.Lobby()
@@ -1431,6 +1435,7 @@ commandPat = re.compile(r'(?P<command>\!\w+)\s?(?P<params>.*)')
 commandMap = {
     "!add": add,
     "!addgame": addGame,
+    "!afk": afk,
     "!authorize": authorize,
     "!automatic": automatic,
     "!captain": captain,
