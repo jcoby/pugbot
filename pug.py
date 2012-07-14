@@ -15,7 +15,7 @@ import game
 
 #irclib.DEBUG = 1
 
-def add(userName, userCommand):
+def cmd_add(userName, userCommand):
     global state, userLimit
     print "State : " + state
     userAuthorizationLevel = isAuthorizedToAdd(userName)
@@ -89,7 +89,7 @@ def add(userName, userCommand):
     else:
         send("PRIVMSG " + config.channel + " :\x030,01You can't \"!add\" until a pug has started.")
 
-def addGame(userName, userCommand):
+def cmd_addgame(userName, userCommand):
     resetVariables()
     global classList, gameServer, lastGameType, state, userLimit
     if not setIP(userName, userCommand):
@@ -181,7 +181,7 @@ def assignUserToTeam(gameClass, recursiveFriend, team, user):
     lobby.remove(user.nick)
     return 0
 
-def authorize(userName, userCommand, userLevel = 1):
+def cmd_authorize(userName, userCommand, userLevel = 1):
     commandList = string.split(userCommand, ' ')
     if len(commandList) < 2:
         send("NOTICE " + userName + " : Error, your command has too few arguments. Here is an example of a valid \"!authorize\" command: \"!authorize nick level\". The level is a value ranging from 0 to 500.")
@@ -225,7 +225,7 @@ def autoGameStart():
     elif lastGameType == 'normal':
         lastGameType = 'captain'
     if server and startMode == 'automatic':
-        addGame(nick, '!addgame ' + lastGameType + ' ' + server['ip'] + ':' + server['port'])
+        cmd_addgame(nick, lastGameType + ' ' + server['ip'] + ':' + server['port'])
 
 def buildTeams():
     fullClassList = classList
@@ -236,7 +236,7 @@ def buildTeams():
             assignUserToTeam(gameClass, 0, team, getAPlayer(gameClass))
     printTeams()
 
-def captain(userName, params):
+def cmd_captain(userName, params):
     global teamA, teamB
     if len(teamA) > 0 and len(teamB) < 6:
         for user in getTeam(captainStageList[captainStage]):
@@ -294,18 +294,18 @@ def drop(connection, event):
         userName = extractUserName(event.source())
     lobby.remove(userName)
 
-def endGame(userName, params):
+def cmd_endgame(userName, params):
     global gameServer, initTimer, state
     initTimer.cancel()
     updateLast(gameServer.split(':')[0], gameServer.split(':')[1], 0)
     state = 'idle'
     print 'PUG stopped.'
 
-def automatic(userName, params):
+def cmd_automatic(userName, params):
     """sets the start mode to automatic"""
     setStartMode("automatic")
 
-def manual(userName, params):
+def cmd_manual(userName, params):
     """sets the start mode to manual"""
     setStartMode("manual")
     
@@ -337,7 +337,7 @@ def extractUserName(user):
     else:
         return ''
 
-def gameMode(userName, userCommand):
+def cmd_game(userName, userCommand):
     global captainStageList, state
     mode = userCommand.split(' ')
     if len(mode) <= 1:
@@ -564,14 +564,14 @@ def getWinStats(userName):
         return [row[0], row[1], row[2], float((float(row[2]) + float(row[1])) / float(row[1] * 2)), row[3]]
     return [userName, 0, 0, 0, 0]
 
-def help(userName, params):
+def cmd_man(userName, params):
     global adminCommands, userCommands
     send("PRIVMSG " + config.channel + " : \x0311,01User related commands:\x030,01 !add, !game, !ip, !last, !limit, !list, !man, !mumble, !need, !needsub, !players, !remove, !scramble, !stats, !status, !sub")
     send("PRIVMSG " + config.channel + " : \x0311,01Captain related commands:\x030,01 !captain, !pick")
     if isAdmin(userName):
         send("PRIVMSG %s : \x0311,01Admin related commands:\x030,01 %s" % (config.channel, ", ".join(adminCommands)))
 
-def ip(userName, userCommand):
+def cmd_ip(userName, userCommand):
     global gameServer
     commandList = string.split(userCommand, ' ')
     if len(commandList) < 2:
@@ -683,13 +683,13 @@ def initGame():
         state = 'picking'
         initTimer = threading.Timer(45, assignCaptains, ['captain'])
         initTimer.start()
-        players(nick, '')
+        cmd_players(nick, '')
     elif state == "scrim":
         send("PRIVMSG " + config.channel + " :\x038,01Team is being drafted, please wait in the channel until this process is over.")
         state = 'picking'
         initTimer = threading.Timer(45, assignCaptains, ['scrim'])
         initTimer.start()
-        players(nick, '')
+        cmd_players(nick, '')
 
 def initServer():
     global gameServer, lastGame
@@ -709,7 +709,7 @@ def isInATeam(userName):
                 return 1
     return 0
 
-def last(userName, params):
+def cmd_last(userName, params):
     global lastGame
     if lastGame == 0:
         send("PRIVMSG " + config.channel + " :\x030,010 matches have been played since the bot was restarted.")
@@ -725,7 +725,7 @@ def last(userName, params):
     message += str(int(minutes)) + " minute(s) "
     send(message + "have elapsed since the last pug started.")
 
-def limit(userName, userCommand):
+def cmd_limit(userName, userCommand):
     global userLimit
     commandList = string.split(userCommand, ' ')
     if len(commandList) < 2:
@@ -762,7 +762,7 @@ def listeningTF2Servers():
             ip = string.split(server, ':')[0]
             port = string.split(server, ':')[1]
             if re.search('^!needsub', srcdsData[0]):
-                needsub('', queryData[i][0])
+                cmd_needsub('', queryData[i][0])
                 cursor.execute('DELETE FROM srcds WHERE time = %s', (queryData[i][1],))
                 cursor.execute('COMMIT;')
             for pastGame in pastGames:
@@ -779,12 +779,12 @@ def listeningTF2Servers():
                 cursor.execute('DELETE FROM srcds WHERE time = %s', (queryData[i][1],))
                 cursor.execute('COMMIT;')
 
-def mumble(userName, params):
+def cmd_mumble(userName, params):
     global voiceServer
     message = "\x030,01Voice server IP: " + voiceServer['ip'] + ":" + voiceServer['port'] + "  Password: " + password + "  Download: http://download.mumble.com/en/mumble-1.2.3a.msi"
     send("PRIVMSG " + config.channel + " :" + message)
 
-def needsub(userName, userCommand):
+def cmd_needsub(userName, userCommand):
     global classList, subList
     commandList = string.split(userCommand, ' ')
     sub = {'class':'unspecified', 'id':getNextSubID(), 'server':'', 'steamid':'', 'team':'unspecified'}
@@ -819,7 +819,7 @@ def nickchange(connection, event):
         lobby.players[newUserName].nick = newUserName
         del lobby.players[oldUserName]
 
-def pick(userName, userCommand):
+def cmd_pick(userName, userCommand):
     global captainStage, captainStageList, classList, state, teamA, teamB
     if (len(captainStageList) >= 10 and (not len(teamA) or not len(teamB))) or (len(captainStageList) == 5 and not len(teamA)):
         send("NOTICE " + userName + " : The selection is not started yet.") 
@@ -895,7 +895,7 @@ def pick(userName, userCommand):
     else:
         send("NOTICE " + userName + " : It is not your turn.") 
 
-def players(userName, params):
+def cmd_list(userName, params):
     printCaptainChoices('channel')
 
 def pubmsg(connection, event):
@@ -994,7 +994,7 @@ def printTeamsHandicaps():
             winRatioOverall[teamIndex] = 100 * (float(handicapTotal[teamIndex] + gamesPlayedCounter[teamIndex]) / float(2 * gamesPlayedCounter[teamIndex]))
     print "Teams win ratios: \x0311,01" + str(int(winRatioOverall[0])) + "%\x030,01 / \x034,01" + str(int(winRatioOverall[1])) + "%"
 
-def listPlayers(userName, params):
+def cmd_players(userName, params):
     """display added users"""
     message = "\x030,01" + str(len(lobby.players)) + " user(s) subscribed:"
     for i, user in lobby.players.iteritems():
@@ -1013,17 +1013,17 @@ def listPlayers(userName, params):
 def printUserList():
     global lastUserPrint, printTimer, state
     if (time.time() - lastUserPrint) > 5:
-        listPlayers('', '')
+        cmd_players('', '')
     else:
         printTimer.cancel()
         printTimer = threading.Timer(5, printUserList)
         printTimer.start()
     lastUserPrint = time.time()
 
-def protect(userName, userCommand):
-    authorize(userName, userCommand, 2)
+def cmd_protect(userName, userCommand):
+    cmd_authorize(userName, userCommand, 2)
 
-def replace(userName, userCommand):
+def cmd_replace(userName, userCommand):
     teamList = ['a', 'b']
     commandList = string.split(userCommand, ' ')
     if len(commandList) < 2:
@@ -1058,7 +1058,7 @@ def replace(userName, userCommand):
         send("NOTICE " + userName + " : Error, the substitute you specified is not in the subscribed list.")
     return 0
 
-def remove(userName, params='', printUsers = 1):
+def cmd_remove(userName, params='', printUsers = 1):
     global initTimer, state, userLimit
     if(isUser(userName)) and (state == 'picking' or state == 'building'):
         send("NOTICE " + userName + " : Warning, you removed but the teams are getting drafted at the moment and there are still some chances that you will get in this PUG. Make sure you clearly announce to the users in the channel and to the captains that you may need a substitute.")
@@ -1103,12 +1103,12 @@ def resetVariables():
     teamB = []
     print 'Reset variables.'
 
-def restartBot():
+def cmd_restart():
     global restart
     restart = 1
 
-def restrict(userName, userCommand):
-    authorize(userName, userCommand, 0)
+def cmd_restrict(userName, userCommand):
+    cmd_authorize(userName, userCommand, 0)
 
 def saveStats():
     global connection, initTime
@@ -1129,7 +1129,7 @@ def saveToLogs(data):
     finally:
         logFile.close()
 
-def scramble(userName, params):
+def cmd_scramble(userName, params):
     global scrambleList, teamA, teamB
     if len(teamA) == 0:
         send("NOTICE " + userName + " :Wait until the teams are drafted to use this command.")
@@ -1205,7 +1205,7 @@ def startGame():
     sendStartPrivateMessages()
     updateLast(string.split(gameServer, ':')[0], string.split(gameServer, ':')[1], initTime)
 
-def stats(userName, params):
+def cmd_stats(userName, params):
     cursor = connection.cursor()
     userStats = params
     
@@ -1290,7 +1290,7 @@ def status():
         except:
             send("PRIVMSG " + config.channel + " :\x030,01 " + server['dns'] + ": error processing the status info")
 
-def sub(userName, userCommand):
+def cmd_sub(userName, userCommand):
     global subList
     if len(subList) == 0:
         send("NOTICE %s :A sub is not needed at this time." % (userName,))
@@ -1309,7 +1309,7 @@ def sub(userName, userCommand):
     del(subList[subIndex])
     return 0
 
-def need(userName, params):
+def cmd_need(userName, params):
     """display players needed"""
     neededClasses = {}
     numberOfPlayersPerClass = {'demo':2, 'medic':2, 'scout':4, 'soldier':4}
@@ -1332,7 +1332,7 @@ def need(userName, params):
             msg = msg + ", captain: %d" % (captainsNeeded,)
         send("PRIVMSG %s :\x030,01%d player(s) needed: %s" % (config.channel, neededPlayers, msg))
 
-def afk(userName, params):
+def cmd_afk(userName, params):
     nick_list = [player.nick for player in lobby.afk_players()]
     send("PRIVMSG " + config.channel + " :\x030,01AFK players: " + ", ".join(nick_list))
     
@@ -1433,34 +1433,34 @@ connection = psycopg2.connect('dbname=tf2ib host=127.0.0.1 user=tf2ib password=j
 commandPat = re.compile(r'(?P<command>\!\w+)\s?(?P<params>.*)')
 
 commandMap = {
-    "!add": add,
-    "!addgame": addGame,
-    "!afk": afk,
-    "!authorize": authorize,
-    "!automatic": automatic,
-    "!captain": captain,
-    "!endgame": endGame,
-    "!game": gameMode,
-    "!ip": ip,
-    "!last": last,
-    "!limit": limit,
-    "!list": players,
-    "!man": help,
-    "!manual": manual,
-    "!mumble": mumble,
-    "!need": need,
-    "!needsub": needsub,
+    "!add": cmd_add,
+    "!addgame": cmd_addgame,
+    "!afk": cmd_afk,
+    "!authorize": cmd_authorize,
+    "!automatic": cmd_automatic,
+    "!captain": cmd_captain,
+    "!endgame": cmd_endgame,
+    "!game": cmd_game,
+    "!ip": cmd_ip,
+    "!last": cmd_last,
+    "!limit": cmd_limit,
+    "!list": cmd_list,
+    "!man": cmd_man,
+    "!manual": cmd_manual,
+    "!mumble": cmd_mumble,
+    "!need": cmd_need,
+    "!needsub": cmd_needsub,
     #"!notice": notice,
-    "!pick": pick,
-    "!players": listPlayers,
-    "!protect": protect,
-    "!replace": replace,
-    "!remove": remove,
-    "!restart": restartBot,
-    "!restrict": restrict,
-    "!scramble": scramble,
-    "!stats": stats,
-    "!sub": sub,
+    "!pick": cmd_pick,
+    "!players": cmd_players,
+    "!protect": cmd_protect,
+    "!replace": cmd_replace,
+    "!remove": cmd_remove,
+    "!restart": cmd_restart,
+    "!restrict": cmd_restrict,
+    "!scramble": cmd_scramble,
+    "!stats": cmd_stats,
+    "!sub": cmd_sub,
     #"!votemap": votemap,
 }
 # Create an IRC object
