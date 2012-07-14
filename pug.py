@@ -857,9 +857,9 @@ def cmd_pick(userName, userCommand):
     for i in range(len(team)):
         if 'medic' in team[i].classes:
             oppositeTeamHasMedic = 1
-    for user in lobby.players.copy():
-        if 'medic' in lobby.players[user].clases:
-            medicsRemaining = medicsRemaining + 1
+
+    medicsRemaining = lobby.class_count('medic')
+
     if not assignToCaptain and counter == 3:
         send("NOTICE " + userName + " : Error, your command has 3 parameters but doesn't contain the word \"captain\". Did you try to set your pick as a captain?")
         return 0
@@ -1072,9 +1072,7 @@ def cmd_remove(userName, params='', printUsers = 1):
             printUserList()
 
 def removeAwayUsers():
-    afk = lobby.afk_players()
-
-    for player in afk:
+    for player in lobby.afk_players():
         lobby.remove(player.nick)
 
     awayTimer = time.time()
