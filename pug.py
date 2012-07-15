@@ -17,7 +17,7 @@ import game
 
 
 def cmd_add(userName, userCommand):
-    global state, userLimit
+    global state
     print "State : " + state
     userAuthorizationLevel = isAuthorizedToAdd(userName)
     if state != 'idle':
@@ -28,14 +28,17 @@ def cmd_add(userName, userCommand):
       #      send("NOTICE " + userName + " : You must be authorized by an admin to PUG here. Ask any peons or any admins to allow you the access to add to the PUGs. The best way to do it is by asking directly in the channel or by asking a friend that has the authorization to do it. If you used to have access, type \"!stats me\" in order to find who deleted your access and talk with him in order to get it back.")
        #     return 0
         if state == 'captain' or state == 'highlander' or state == 'normal':
-            if ((len(lobby.players) == (userLimit - 1) and lobby.class_count('medic') == 0) or (len(lobby.players) == (userLimit - 1) and lobby.class_count('medic') <= 1)) and not isMedic(userCommand):
-                if not isUser(userName) and userAuthorizationLevel == 3:
-                    userLimit = userLimit + 1
-                elif not isUser(userName):
-                    send("NOTICE " + userName + " : The only class available is medic. Type \"!add medic\" to join this round as this class.")
-                    return 0
-            if userAuthorizationLevel == 3 and not isUser(userName) and len(lobby.players) == userLimit:
-                userLimit = userLimit + 1
+            if ((len(lobby.players) == (current_game.player_limit - 1) and lobby.class_count('medic') == 0) or (len(lobby.players) == (current_game.player_limit - 1) and lobby.class_count('medic') <= 1)) and not isMedic(userCommand):
+                if not userName in lobby.players:
+                    if userAuthorizationLevel == 3:
+                        current_game.player_limit += 1
+                    else:
+                        send("NOTICE " + userName + " : The only class available is medic. Type \"!add medic\" to join this round as this class.")
+                        return
+
+            if userAuthorizationLevel == 3 and not isUser(userName) and len(lobby.players) == current_game.player_limit:
+                current_game.player_limit += 1
+
             if len(extractClasses(userCommand)) == 0:
                 send("NOTICE " + userName + " : " + "Error! You need to specify a class. Example: \"!add scout\".")
                 return 0
@@ -45,12 +48,14 @@ def cmd_add(userName, userCommand):
             elif extractClasses(userCommand)[0] not in getAvailableClasses():
                 send("NOTICE " + userName + " : The class you specified is not in the available class list: " + ", ".join(getAvailableClasses()) + ".")
                 return 0
-            if len(lobby.players) < userLimit:
+
+            if len(lobby.players) < current_game.player_limit:
                 print "User add : " + userName + "  Command : " + userCommand
                 p = createUser(userName, userCommand, userAuthorizationLevel)
                 lobby.add(p)
                 send("NOTICE " + userName + " : " + "You sucessfully subscribed to the picking process as: " + ", ".join(p.classes) + "")
                 printUserList()
+
             if len(lobby.players) >= (getTeamSize() * 2) and lobby.class_count('medic') > 1:
                 if lobby.class_count('demo') < 2 or lobby.class_count('scout') < 4 or lobby.class_count('soldier') < 3:
                     return 0
@@ -62,7 +67,7 @@ def cmd_add(userName, userCommand):
                 elif type(awayTimer).__name__ == 'float':
                     sendMessageToAwayPlayers()
         elif state == 'scrim':
-            if len(lobby.players) == (userLimit - 2) and lobby.class_count('medic') == 0 and not isMedic(userCommand):
+            if len(lobby.players) == (current_game.player_limit - 2) and lobby.class_count('medic') == 0 and not isMedic(userCommand):
                 send("NOTICE " + userName + " : The only class available is medic. Type \"!add medic\" to join this round as this class.")
                 return 0
             print "User add : " + userName + "  Command : " + userCommand
@@ -81,7 +86,7 @@ def cmd_add(userName, userCommand):
                     if userAuthorizationLevel == 1:
                         return 0
                     elif userAuthorizationLevel == 3 and not isUser(userName):
-                        userLimit = userLimit + 1
+                        current_game.player_limit = current_game.player_limit + 1
                 lobby.players[userName] = createUser(userName, userCommand, userAuthorizationLevel)
                 printUserList()
             else:
@@ -93,25 +98,29 @@ def cmd_add(userName, userCommand):
 
 def cmd_addgame(userName, userCommand):
     resetVariables()
-    global classList, gameServer, lastGameType, state, userLimit
+    global gameServer, lastGameType, state
     if not setIP(userName, userCommand):
         return 0
+
+    standard_roster = {'demo': 2, 'medic': 2, 'scout': 4, 'soldier': 4}
+    highlander_roster = {'demo': 2, 'engineer': 2, 'heavy': 2, 'medic': 2, 'pyro': 2, 'scout': 2, 'sniper': 2, 'soldier': 2, 'spy': 2}
     # Game type.
     if re.search('captain', userCommand):
-        classList = ['demo', 'medic', 'scout', 'soldier']
         lastGameType = 'captain'
         state = 'captain'
-        userLimit = 24
+        current_game.roster = standard_roster
+        current_game.player_limit = 24
     elif re.search('highlander', userCommand):
-        classList = ['demo', 'engineer', 'heavy', 'medic', 'pyro', 'scout', 'sniper', 'soldier', 'spy']
         lastGameType = 'highlander'
         state = 'highlander'
-        userLimit = 18
+        current_game.roster = highlander_roster
+        current_game.player_limit = 18
     else:
-        classList = ['demo', 'medic', 'scout', 'soldier']
         lastGameType = 'normal'
         state = 'normal'
-        userLimit = 12
+        curent_game.roster = standard_roster
+        current_game.player_limit = 12
+
     updateLast(gameServer.split(':')[0], gameServer.split(':')[1], -(time.time()))
     send("PRIVMSG " + config.channel + ' :\x030,01PUG started. Game type: ' + state + '. Type "!add" to join a game.')
 
@@ -152,44 +161,31 @@ def analyseIRCText(connection, event):
 
 
 def assignCaptains(mode='captain'):
-    global teamA, teamB
     if mode == 'captain':
         if lobby.captain_count() < 2:
             send("PRIVMSG " + config.channel + ' :\x030,01There are not enough captains to start this game.')
             state = "captain"
             return
 
-        captain1 = getACaptain()
-        lobby.players[captain1.nick].captain = True
-        assignUserToTeam(captain1.preferred_class(), 0, 'a', lobby.players[captain1.nick])
-        captain2 = getACaptain()
-        lobby.players[captain2.nick].captain = True
-        assignUserToTeam(captain2.preferred_class(), 0, 'b', lobby.players[captain2.nick])
-        send("PRIVMSG " + config.channel + ' :\x030,01Captains are \x0311,01' + teamA[0].nick + '\x030,01 and \x034,01' + teamB[0].nick + "\x030,01.")
-    elif mode == 'scrim':
-        captain1 = getACaptain()
-        assignUserToTeam(captain1.preferred_class(), 0, 'a', lobby.players[captain1.nick])
-        send("PRIVMSG " + config.channel + ' :\x030,01Captain is \x0308,01' + teamA[0].nick + '\x030,01.')
+        current_game.assign_captains()
+        send("PRIVMSG " + config.channel + ' :\x030,01Captains are \x0311,01' + current_game.teams[0].captain.nick + '\x030,01 and \x034,01' + current_game.teams[1].captain.nick + "\x030,01.")
+    # elif mode == 'scrim':
+    #     captain1 = getACaptain()
+    #     assignUserToTeam(captain1.preferred_class(), 0, 'a', lobby.players[captain1.nick])
+    #     send("PRIVMSG " + config.channel + ' :\x030,01Captain is \x0308,01' + teamA[0].nick + '\x030,01.')
     printCaptainChoices()
 
 
-def assignUserToTeam(gameClass, recursiveFriend, team, user):
-    global pastGames, teamA, teamB
+def assignUserToTeam(gameClass, team, user):
     if gameClass:
         user.classes = [gameClass]
     else:
         user.classes = []
-    if not team:
-        team = random.choice(['a', 'b'])
-    user.team = team
-    # Assign the user to the team if the team's not full.
-    if len(getTeam(team)) < getTeamSize():  # Debug : 6
-        getTeam(team).append(user)
-    else:
-        getTeam(getOppositeTeam(team)).append(user)
+
+    team.players.append(user)
+
     pastGames[len(pastGames) - 1]['players'].append(lobby.players[user.nick])
     lobby.remove(user.nick)
-    return 0
 
 
 def cmd_authorize(userName, userCommand, userLevel=1):
@@ -237,27 +233,17 @@ def autoGameStart():
     elif lastGameType == 'normal':
         lastGameType = 'captain'
     if server and startMode == 'automatic':
-        cmd_addgame(nick, lastGameType + ' ' + server['ip'] + ':' + server['port'])
+        cmd_addgame('', lastGameType + ' ' + server['ip'] + ':' + server['port'])
 
 
 def buildTeams():
-    fullClassList = classList
-    if getTeamSize() == 6:
-        fullClassList = formalTeam
-    for team in ['a', 'b']:
-        for gameClass in fullClassList:
-            assignUserToTeam(gameClass, 0, team, getAPlayer(gameClass))
+    current_game.random_teams()
     printTeams()
 
 
 def cmd_captain(userName, params):
-    global teamA, teamB
-    if len(teamA) > 0 and len(teamB) < 6:
-        for user in getTeam(captainStageList[captainStage]):
-            if user.captain:
-                captainName = user.nick
-                break
-        send("PRIVMSG " + config.channel + ' :\x030,01Captain picking turn is to ' + captainName + '.')
+    if current_game.current_captain():
+        send("PRIVMSG " + config.channel + ' :\x030,01Captain picking turn is to ' + current_game.current_captain.nick + '.')
     else:
         send("PRIVMSG " + config.channel + ' :\x030,01Picking process has not been started yet.')
 
@@ -274,7 +260,7 @@ def cleanUserCommand(command):
 
 
 def clearCaptainsFromTeam(team):
-    for user in getTeam(team):
+    for user in getTeam(team).players:
         user.captain = False
 
 
@@ -305,7 +291,10 @@ def connect():
 
 
 def createUser(userName, userCommand, userAuthorizationLevel):
-    return game.Player(userName, extractClasses(userCommand), re.search('captain', userCommand), authorization=userAuthorizationLevel)
+    player = game.Player(userName, extractClasses(userCommand), re.search('captain', userCommand), authorization=userAuthorizationLevel)
+    if player.captain:
+        player.win_stats = getWinStats(player.nick)
+    return player
 
 
 def drop(connection, event):
@@ -349,13 +338,11 @@ def executeCommand(userName, command, params):
 
 
 def extractClasses(userCommand):
-    global classList
     classes = []
     commandList = string.split(userCommand, ' ')
-    for i in commandList:
-        for j in classList:
-            if i == j:
-                classes.append(j)
+    for cls in commandList:
+        if cls in current_game.roster:
+            classes.append(cls)
     return classes
 
 
@@ -367,76 +354,27 @@ def extractUserName(user):
 
 
 def cmd_game(userName, userCommand):
-    global captainStageList, state
-    mode = userCommand.split(' ')
-    if len(mode) <= 1:
-        send("PRIVMSG " + config.channel + " :\x030,01The actual game mode is set to \"" + state + "\".")
-        return 0
-    elif not isAdmin(userName):
-        send("PRIVMSG " + config.channel + " :\x030,01Warning " + userName + ", you are trying an admin command as a normal user.")
-        return 0
-    if mode[1] == 'captain':
-        if state == 'scrim':
-            captainStageList = ['a', 'b', 'a', 'b', 'b', 'a', 'a', 'b', 'b', 'a']
-            state = 'captain'
-        else:
-            send("NOTICE " + userName + " :You can't switch the game mode in this bot state.")
-    elif mode[1] == 'scrim':
-        if state == 'captain':
-            captainStageList = ['a', 'a', 'a', 'a', 'a']
-            state = 'scrim'
-        else:
-            send("NOTICE " + userName + " :You can't switch the game mode in this bot state.")
+    global state
+    send("PRIVMSG " + config.channel + " :\x030,01The actual game mode is set to \"" + state + "\".")
 
-
-def getACaptain():
-    medics = []
-    medicsCaptains = []
-    otherCaptains = []
-    for nick, player in lobby.players.iteritems():
-        if "medic" in player.classes:
-            if player.captain:
-                medicsCaptains.append(player)
-            else:
-                medics.append(player)
-        elif player.captain:
-            otherCaptains.append(player)
-    if len(medicsCaptains) > 0:
-        player = random.choice(medicsCaptains)
-        player.classes = ['medic']
-    elif len(otherCaptains) > 0:
-        maximum = 0
-        otherCaptainWithMaximumRatio = ''
-        for otherCaptain in otherCaptains:
-            winStats = getWinStats(otherCaptain.nick)
-            if winStats[3] > maximum:
-                maximum = winStats[3]
-                otherCaptainWithMaximumRatio = otherCaptain.nick
-        if maximum > 0:
-            player = lobby.playersCopy[otherCaptainWithMaximumRatio]
-        else:
-            player = random.choice(otherCaptains)
-        if len(player.classes) > 0:
-            player.classes = [player.preferred_class()]
-        else:
-            player.classes = ['scout']
-    else:
-        player = random.choice(medics)
-        player.classes = ['medic']
-    return player
-
-
-def getAPlayer(playerType):
-    forcedList = []
-    candidateList = []
-    for nick, player in lobby.players.iteritems():
-        forcedList.append(nick)
-        if len(player.classes) > 0 and playerType == player.preferred_class():
-            candidateList.append(player)
-    if len(candidateList) > 0:
-        return random.choice(candidateList)
-    else:
-        return random.choice(forcedList)
+    # mode = userCommand.split(' ')
+    # if len(mode) <= 1:
+    #     send("PRIVMSG " + config.channel + " :\x030,01The actual game mode is set to \"" + state + "\".")
+    #     return 0
+    # elif not isAdmin(userName):
+    #     send("PRIVMSG " + config.channel + " :\x030,01Warning " + userName + ", you are trying an admin command as a normal user.")
+    #     return 0
+    # if mode[1] == 'captain':
+    #     if state == 'scrim':
+    #         state = 'captain'
+    #     else:
+    #         send("NOTICE " + userName + " :You can't switch the game mode in this bot state.")
+    # elif mode[1] == 'scrim':
+    #     if state == 'captain':
+    #         captainStageList = ['a', 'a', 'a', 'a', 'a']
+    #         state = 'scrim'
+    #     else:
+    #         send("NOTICE " + userName + " :You can't switch the game mode in this bot state.")
 
 
 def getAuthorizationStatus(userName):
@@ -449,14 +387,9 @@ def getAuthorizationStatus(userName):
 
 def getAvailableClasses():
     availableClasses = []
-    if userLimit == 12:
-        numberOfPlayersPerClass = {'demo': 2, 'medic': 2, 'scout': 4, 'soldier': 4}
-    elif userLimit == 24:
-        numberOfPlayersPerClass = {'demo': 4, 'medic': 4, 'scout': 8, 'soldier': 8}
-    if getTeamSize() == 9:
-        numberOfPlayersPerClass = {'demo': 2, 'engineer': 2, 'heavy': 2, 'medic': 2, 'pyro': 2, 'scout': 2, 'sniper': 2, 'soldier': 2, 'spy': 2}
-    for gameClass in classList:
-        if lobby.class_count(gameClass) < numberOfPlayersPerClass[gameClass]:
+
+    for gameClass in current_game.roster:
+        if lobby.class_count(gameClass) < current_game.roster[gameClass]:
             availableClasses.append(gameClass)
     return availableClasses
 
@@ -466,12 +399,6 @@ def getAvailableServer():
         if server['last'] >= 0 and (time.time() - server['last']) >= (60 * 75):
             return {'ip': server['dns'], 'port': server['port']}
     return 0
-
-
-def getCaptainNameFromTeam(team):
-    for user in getTeam(team):
-        if user['status'] == 'captain':
-            return user['nick']
 
 
 def getDNSFromIP(ip):
@@ -543,19 +470,18 @@ def getPlayerName(userNumber):
 
 
 def getPlayerTeam(userName):
-    for teamID in ['a', 'b']:
-        team = getTeam(teamID)
-        for user in team:
-            if user['nick'] == userName:
-                return teamID
+    for team in current_game.teams:
+        for user in team.players:
+            if user.nick == userName:
+                return team
 
 
 def getRemainingClasses():
-    global captainStage, captainStageList, formalTeam
+    global formalTeam
     remainingClasses = formalTeam[:]
-    team = getTeam(captainStageList[captainStage])
-    for user in team:
-        if user.preferred_class() in remainingClasses:
+    team = current_game.current_captain_team()
+    for user in team.players:
+        if user.game_class in remainingClasses:
             remainingClasses.remove(user.preferred_class())
     uniqueRemainingClasses = {}
     for gameClass in remainingClasses:
@@ -583,29 +509,22 @@ def getSubIndex(id):
 
 
 def getTeam(team):
-    global teamA, teamB
-    if team == 'a':
-        return teamA
-    else:
-        return teamB
+    return current_game.teams[team]
 
 
 def getTeamSize():
-    teamSize = 6
-    if len(classList) == 9:
-        teamSize = 9
+    teamSize = 0
+    for cls, count in current_game.roster.iteritems():
+        teamSize = teamSize + count / 2
+
     return teamSize
 
 
 def getUserCount():
-    global teamA, teamB
-    teams = [teamA, teamB]
     counter = len(lobby.players)
-    teamCounter = 0
-    for team in teams:
-        for user in teams[teamCounter]:
-            counter += 1
-        teamCounter += 1
+    for team in current_game.teams:
+        counter += len(current_game.teams[team])
+
     return counter
 
 
@@ -661,12 +580,7 @@ def isAdminCommand(userName, userCommand):
 
 
 def isAuthorizedCaptain(userName):
-    global captainStage, captainStageList, teamA, teamB
-    team = getTeam(captainStageList[captainStage])
-    for user in team:
-        if user.captain and user.nick == userName:
-            return 1
-    return 0
+    return current_game.current_captain().nick == userName
 
 
 def isAuthorizedToAdd(userName):
@@ -717,34 +631,15 @@ def isUserCommand(userName, command):
 
 
 def isUserCountOverLimit():
-    global teamA, teamB, userLimit
-    teams = [teamA, teamB]
-    userCount = getUserCount()
-    if userCount < userLimit:
-        return 0
-    else:
-        return 1
-
-
-def canGameStart():
-    if state == "building" or state == "picking":
-        return False
-
-    teams = {}
-    if state == "normal" or state == "captain":  # 6v6
-        teams = {"medic": 2, "demo": 2, "soldier": 4, "scout": 4}
-    elif state == "highlander":  # 9v9
-        teams = {"scout": 2, "soldier": 2, "pyro": 2, "demo": 2, "heavy": 2, "engineer": 2, "medic": 2, "sniper": 2, "spy": 2}
-
-    return lobby.roster_full(teams)
+    return getUserCount() < current_game.player_limit
 
 
 def initGame():
-    global gameServer, initTime, initTimer, nick, pastGames, scrambleList, startGameTimer, state, teamA, teamB
+    global gameServer, initTime, initTimer, nick, pastGames, scrambleList, startGameTimer, state
     if state == 'building' or state == 'picking':
         return 0
 
-    if not canGameStart():
+    if not lobby.roster_full(current_game.roster):
         return 0
 
     initTime = int(time.time())
@@ -785,13 +680,11 @@ def initServer():
 
 
 def isInATeam(userName):
-    teamList = ['a', 'b']
-    for teamName in teamList:
-        team = getTeam(teamName)
-        for user in team:
-            if user['nick'] == userName:
-                return 1
-    return 0
+    for team in current_game.teams:
+        for user in team.players:
+            if user.nick == userName:
+                return True
+    return False
 
 
 def cmd_last(userName, params):
@@ -812,10 +705,9 @@ def cmd_last(userName, params):
 
 
 def cmd_limit(userName, userCommand):
-    global userLimit
     commandList = string.split(userCommand, ' ')
     if len(commandList) < 2:
-        send("PRIVMSG " + config.channel + " :\x030,01The PUG's user limit is set to \"" + str(userLimit) + "\".")
+        send("PRIVMSG " + config.channel + " :\x030,01The PUG's user limit is set to \"" + str(current_game.player_limit) + "\".")
         return 0
     try:
         if not isAdmin(userName):
@@ -826,11 +718,11 @@ def cmd_limit(userName, userCommand):
             return 0
         if int(commandList[1]) > maximumUserLimit:
             send("NOTICE " + userName + " : The maximum limit is at " + str(maximumUserLimit))
-            userLimit = 24
+            current_game.player_limit = 24
             return 0
     except:
         return 0
-    userLimit = int(commandList[1])
+    current_game.player_limit = int(commandList[1])
 
 
 def listeningTF2Servers():
@@ -874,7 +766,7 @@ def cmd_mumble(userName, params):
 
 
 def cmd_needsub(userName, userCommand):
-    global classList, subList
+    global subList
     commandList = string.split(userCommand, ' ')
     sub = {'class': 'unspecified', 'id': getNextSubID(), 'server': '', 'steamid': '', 'team': 'unspecified'}
     for command in commandList:
@@ -895,7 +787,7 @@ def cmd_needsub(userName, userCommand):
         sub['team'] = '\x034,01Red\x030,01'
     # Set the class.
     for argument in commandList:
-        if argument in classList:
+        if argument in current_game.roster:
             sub['class'] = argument
     subList.append(sub)
     printSubs()
@@ -911,80 +803,80 @@ def nickchange(connection, event):
 
 
 def cmd_pick(userName, userCommand):
-    global captainStage, captainStageList, classList, state, teamA, teamB
-    if (len(captainStageList) >= 10 and (not len(teamA) or not len(teamB))) or (len(captainStageList) == 5 and not len(teamA)):
+    global state
+    if current_game.current_captain() is None:
         send("NOTICE " + userName + " : The selection is not started yet.")
-        return 0
+        return
+
+    if current_game.current_captain().nick != userName:
+        send("NOTICE " + userName + " : It is not your turn.")
+        return
+
     commandList = string.split(userCommand, ' ')
     if len(commandList) < 2:
         send("NOTICE " + userName + " : Error, your command has too few arguments. Here is an example of a valid \"!pick\" command: \"!pick 13 scout\".")
         return 0
 
-    assignToCaptain = 0
-    commandsToDelete = []
+    userId, gameClass = commandList[:2]
+    assignToCaptain = False
+    if len(commandList) > 2:
+        assignToCaptain = commandList[2] == "captain"
+
+    player = None
+    for nick, p in lobby.players.iteritems():
+        if userId.isdigit() and int(userId) == p.id:
+            player = p
+            break
+        elif nick == userId:
+            player = p
+            break
+
     counter = 0
-    gameClass = ''
     medicsRemaining = 0
-    for command in commandList:
-        if command in classList:
-            gameClass = command
-            commandsToDelete.append(counter)
-        elif command == 'captain':
-            assignToCaptain = 1
-            commandsToDelete.append(counter)
-        counter += 1
-    for i in reversed(commandsToDelete):
-        del commandList[i]
-    userFound = 0
-    if re.search('^[0-9][0-9]*$', commandList[0]) and getPlayerName(int(commandList[0])):
-        commandList[0] = getPlayerName(int(commandList[0]))
-        userFound = 1
-    else:
-        # Check if this nickname exists in the player list.
-        userFound = commandList[0] in lobby.players
 
-    team = getTeam(getOppositeTeam(captainStageList[captainStage]))
-    oppositeTeamHasMedic = 0
-    for i in range(len(team)):
-        if 'medic' in team[i].classes:
-            oppositeTeamHasMedic = 1
-
+    oppositeTeamHasMedic = current_game.other_captain_team().has_class('medic')
     medicsRemaining = lobby.class_count('medic')
 
-    if not assignToCaptain and counter == 3:
+    if not assignToCaptain and len(commandList) > 2:
         send("NOTICE " + userName + " : Error, your command has 3 parameters but doesn't contain the word \"captain\". Did you try to set your pick as a captain?")
         return 0
-    if not userFound:
+
+    if not player:
         send("NOTICE " + userName + " : Error, this user doesn\'t exist.")
         return 0
-    if lastGameType != 'scrim' and not oppositeTeamHasMedic and medicsRemaining == 1 and 'medic' in lobby.players[commandList[0]].classes:
+
+    if lastGameType != 'scrim' and not oppositeTeamHasMedic and medicsRemaining == 1 and 'medic' in player.classes:
         send("NOTICE " + userName + " : Error, you can't pick the last medic if you already have one.")
         return 0
-    if gameClass == '':
-        send("NOTICE " + userName + " : Error, you must specify a class from this list: " + ', '.join(getRemainingClasses()) + ".")
+
+    if gameClass not in current_game.roster:
+        send("NOTICE " + userName + " : Error, you must specify a class from this list: " + ', '.join(current_game.roster.keys()) + ".")
         return 0
-    if gameClass not in lobby.players[commandList[0]].classes:
+
+    if gameClass not in player.classes:
         send("NOTICE " + userName + " : You must pick the user as the class he added.")
         return 0
+
     if gameClass not in getRemainingClasses():
         send("NOTICE " + userName + " : This class is full, pick another one from this list: " + ', '.join(getRemainingClasses()))
         return 0
-    if isAuthorizedCaptain(userName):
-        send("NOTICE " + userName + " : You selected \"" + commandList[0] + "\" as \"" + gameClass + "\".")
-        lobby.players[commandList[0]].captain = False
-        if assignToCaptain:
-            clearCaptainsFromTeam(getPlayerTeam(userName))
-            lobby.players[commandList[0]].captain = True
-        send("NOTICE " + commandList[0] + " : " + getCaptainNameFromTeam(getPlayerTeam(userName)) + " picked you as " + gameClass)
-        send("NOTICE " + getCaptainNameFromTeam(getOppositeTeam(getPlayerTeam(userName))) + " : \x037" + userName + " picked " + commandList[0] + " as " + gameClass)
-        assignUserToTeam(gameClass, 0, getPlayerTeam(userName), lobby.players[commandList[0]])
-        if captainStage < (len(captainStageList) - 1):
-            captainStage += 1
-            printCaptainChoices()
-        else:
-            startGame()
+
+    send("NOTICE " + userName + " : You selected \"" + player.nick + "\" as \"" + gameClass + "\".")
+    player.captain = False
+    if assignToCaptain:
+        team = getPlayerTeam(player.nick)
+        clearCaptainsFromTeam(team)
+        player.captain = True
+        team.captain = player
+
+    send("NOTICE " + player.nick + " : " + current_game.current_captain().nick + " picked you as " + gameClass)
+    send("NOTICE " + current_game.current_captain().nick + " : \x037" + userName + " picked " + player.nick + " as " + gameClass)
+    assignUserToTeam(gameClass, current_game.current_captain_team(), player)
+    if current_game.captain_picks_remaining() > 0:
+        current_game.next_captain()
+        printCaptainChoices()
     else:
-        send("NOTICE " + userName + " : It is not your turn.")
+        startGame()
 
 
 def cmd_list(userName, params):
@@ -996,21 +888,20 @@ def pubmsg(connection, event):
 
 
 def printCaptainChoices(printType='private'):
-    global classList, captainStage, captainStageList
     if printType == 'private':
-        captainName = getCaptainNameFromTeam(captainStageList[captainStage])
+        player = current_game.current_captain()
         captainColor = '\x0312'
         followingColor = '\x035'
         protectedColor = '\x033'
-        dataPrefix = "NOTICE " + captainName + " : "
-        send(dataPrefix + captainName + ", you are captain of a team and it's your turn to pick a player. Type \"!pick # class\" to pick somebody for your team.")
+        dataPrefix = "NOTICE " + player.nick + " : "
+        send(dataPrefix + player.nick + ", you are captain of a team and it's your turn to pick a player. Type \"!pick # class\" to pick somebody for your team.")
         send(dataPrefix + "Remaining classes: " + ', '.join(getRemainingClasses()))
     else:
         captainColor = '\x038,01'
         followingColor = '\x030,01'
         protectedColor = '\x039,01'
         dataPrefix = "PRIVMSG " + config.channel + " :\x030,01"
-    for gameClass in classList:
+    for gameClass in current_game.roster:
         choiceList = []
         for userName in lobby.players:
             player = lobby.players[userName]
@@ -1045,51 +936,49 @@ def printSubs():
 
 
 def printTeams():
-    global captainStageList, state, teamA, teamB
-    if len(captainStageList) >= 10:
-        teamNames = ['Blue', 'Red']
-        colors = ['\x0311,01', '\x034,01']
-        teams = [teamA, teamB]
-    else:
-        teamNames = ['Scrim']
-        colors = ['\x0308,01']
-        teams = [teamA]
+    globalstate
+    teamNames = ['Blu', 'Red']
+    colors = ['\x0311,01', '\x034,01']
+    # else:
+    #     teamNames = ['Scrim']
+    #     colors = ['\x0308,01']
+    #     teams = [current_game.teams[0]]
     counter = 0
-    for i in teams:
+    for counter, team in enumerate(current_game.teams):
         message = colors[counter] + teamNames[counter] + "\x030,01 : "
-        for user in teams[counter]:
+        for user in team.players:
             gameClass = ''
-            if user['class']:
-                gameClass = " as " + colors[counter] + user['class'][0] + "\x030,01"
-            message += '"' + user['nick'] + gameClass + '" '
+            if user.game_class:
+                gameClass = " as " + colors[counter] + user.game_class + "\x030,01"
+            message += '"' + user.nick + gameClass + '" '
         send("PRIVMSG " + config.channel + " :" + message)
-        counter += 1
-    printTeamsHandicaps()
+
+    #printTeamsHandicaps()
 
 
-def printTeamsHandicaps():
-    if len(pastGames[len(pastGames) - 1]['players']) <= 6:
-        return 0
-    gamesPlayedCounter = [0, 0]
-    handicapTotal = [0, 0]
-    for user in pastGames[len(pastGames) - 1]['players']:
-        winStats = getWinStats(user['nick'])
-        if winStats[1]:
-            gamesPlayed = winStats[1]
-            handicap = winStats[2]
-            if user['team'] == 'a':
-                teamIndex = 0
-            else:
-                teamIndex = 1
-            gamesPlayedCounter[teamIndex] = gamesPlayedCounter[teamIndex] + gamesPlayed
-            handicapTotal[teamIndex] = handicapTotal[teamIndex] + handicap
-    winRatioOverall = [0, 0]
-    for teamIndex in range(2):
-        if gamesPlayedCounter[teamIndex] == 0:
-            winRatioOverall[teamIndex] = 0
-        else:
-            winRatioOverall[teamIndex] = 100 * (float(handicapTotal[teamIndex] + gamesPlayedCounter[teamIndex]) / float(2 * gamesPlayedCounter[teamIndex]))
-    print "Teams win ratios: \x0311,01" + str(int(winRatioOverall[0])) + "%\x030,01 / \x034,01" + str(int(winRatioOverall[1])) + "%"
+# def printTeamsHandicaps():
+#     if len(pastGames[len(pastGames) - 1]['players']) <= 6:
+#         return 0
+#     gamesPlayedCounter = [0, 0]
+#     handicapTotal = [0, 0]
+#     for user in pastGames[len(pastGames) - 1]['players']:
+#         winStats = getWinStats(user['nick'])
+#         if winStats[1]:
+#             gamesPlayed = winStats[1]
+#             handicap = winStats[2]
+#             if user['team'] == 'a':
+#                 teamIndex = 0
+#             else:
+#                 teamIndex = 1
+#             gamesPlayedCounter[teamIndex] = gamesPlayedCounter[teamIndex] + gamesPlayed
+#             handicapTotal[teamIndex] = handicapTotal[teamIndex] + handicap
+#     winRatioOverall = [0, 0]
+#     for teamIndex in range(2):
+#         if gamesPlayedCounter[teamIndex] == 0:
+#             winRatioOverall[teamIndex] = 0
+#         else:
+#             winRatioOverall[teamIndex] = 100 * (float(handicapTotal[teamIndex] + gamesPlayedCounter[teamIndex]) / float(2 * gamesPlayedCounter[teamIndex]))
+#     print "Teams win ratios: \x0311,01" + str(int(winRatioOverall[0])) + "%\x030,01 / \x034,01" + str(int(winRatioOverall[1])) + "%"
 
 
 def cmd_players(userName, params):
@@ -1124,54 +1013,56 @@ def cmd_protect(userName, userCommand):
     cmd_authorize(userName, userCommand, 2)
 
 
-def cmd_replace(userName, userCommand):
-    teamList = ['a', 'b']
-    commandList = string.split(userCommand, ' ')
-    if len(commandList) < 2:
-        send("NOTICE " + userName + " : Error, there is not enough arguments in your \"!replace\" command. Example: \"!replace toreplace substitute\".")
-        return 0
-    toReplace = commandList[0]
-    substitute = commandList[1]
-    for teamName in teamList:
-        if type(toReplace) == type({}):
-            break
-        counter = 0
-        team = getTeam(teamName)
-        for user in team:
-            if user.nick == toReplace:
-                toReplace = user
-                toReplaceTeam = teamName
-                break
-            counter += 1
-    if type(toReplace) == type({}):
-        gameClass = toReplace['class']
-        toReplace['class'] = extractClasses(toReplace['command'])
-    else:
-        send("NOTICE " + userName + " : Error, the user you specified to replace is not listed in a team.")
-        return 0
-    if substitute in lobby.players:
-        lobby.players[substitute].captain
-        assignUserToTeam('medic', 0, toReplaceTeam, lobby.players[substitute])
-        team[counter]['status'] = ''
-        lobby.players[team[counter].nick] = team[counter]
-        del team[counter]
-    else:
-        send("NOTICE " + userName + " : Error, the substitute you specified is not in the subscribed list.")
-    return 0
+# def cmd_replace(userName, userCommand):
+#     commandList = string.split(userCommand, ' ')
+#     if len(commandList) < 2:
+#         send("NOTICE " + userName + " : Error, there is not enough arguments in your \"!replace\" command. Example: \"!replace toreplace substitute\".")
+#         return 0
+#     toReplace = commandList[0]
+#     substitute = commandList[1]
+#     for team in current_game.teams
+#         if type(toReplace) == type({}):
+#             break
+#         counter = 0
+#
+#         for user in team.players:
+#             if user.nick == toReplace:
+#                 toReplace = user
+#                 toReplaceTeam = teamName
+#                 break
+#             counter += 1
+#     if type(toReplace) == type({}):
+#         gameClass = toReplace['class']
+#         toReplace.classes = extractClasses(toReplace['command'])
+#     else:
+#         send("NOTICE " + userName + " : Error, the user you specified to replace is not listed in a team.")
+#         return 0
+#
+#     if substitute in lobby.players:
+#         lobby.players[substitute].captain
+#         assignUserToTeam('medic', 0, toReplaceTeam, lobby.players[substitute])
+#     else:
+#         send("NOTICE " + userName + " : Error, the substitute you specified is not in the subscribed list.")
+#     return 0
 
 
-def cmd_remove(userName, params='', printUsers=1):
-    global initTimer, state, userLimit
-    if(isUser(userName)) and (state == 'picking' or state == 'building'):
-        send("NOTICE " + userName + " : Warning, you removed but the teams are getting drafted at the moment and there are still some chances that you will get in this PUG. Make sure you clearly announce to the users in the channel and to the captains that you may need a substitute.")
-        lobby.players[userName].remove = True
-    elif isUser(userName):
-        if isAuthorizedToAdd(userName) > 1 and userLimit > maximumUserLimit and isUser(userName):
-            userLimit = userLimit - 1
+def cmd_remove(userName, params=''):
+    global initTimer, state
+    if(userName in lobby.players):
+        if state == 'picking' or state == 'building':
+            send("NOTICE " + userName + " : Warning, you removed but the teams are getting drafted at the moment and there are still some chances that you will get in this PUG. Make sure you clearly announce to the users in the channel and to the captains that you may need a substitute.")
+            lobby.players[userName].remove = True
+            return
+
+        if isAuthorizedToAdd(userName) > 1 and current_game.player_limit > maximumUserLimit and isUser(userName):
+            current_game.player_limit = current_game.player_limit - 1
+
         del lobby.players[userName]
         initTimer.cancel()
-        if printUsers:
-            printUserList()
+        printUserList()
+        send("NOTICE " + userName + " : You have been removed.")
+    else:
+        send("NOTICE " + userName + " : You are not added to play.")
 
 
 def removeAwayUsers():
@@ -1183,7 +1074,7 @@ def removeAwayUsers():
 
 
 def removeUnremovedUsers():
-    for user in lobby.players.copy():
+    for user in lobby.players:
         if lobby.players[user].remove:
             lobby.players.remove(user)
 
@@ -1195,16 +1086,13 @@ def removeLastEscapeCharacter(userCommand):
 
 
 def resetVariables():
-    global captainStage, captainStageList, gameServer, teamA, teamB, userLimit
+    global captainStage, captainStageList, gameServer
     global lobby
 
-    lobby = game.Lobby()
-    captainStage = 0
-    captainStageList = ['a', 'b', 'a', 'b', 'b', 'a', 'a', 'b', 'b', 'a']
+    current_game = game.Game(lobby)
+
     gameServer = ''
     removeUnremovedUsers()
-    teamA = []
-    teamB = []
     print 'Reset variables.'
 
 
@@ -1220,13 +1108,10 @@ def cmd_restrict(userName, userCommand):
 def saveStats():
     global connection, initTime
     teamName = ['\x0312blue\x031', '\x034red\x031']
-    for teamID in ['a', 'b']:
-        team = getTeam(teamID)
+    for team in current_game.teams:
         for user in team:
-            if len(user.classes) == 0:
-                user.classes = ['']
             cursor = connection.cursor()
-            cursor.execute('INSERT INTO stats VALUES (%s, %s, %s, %s, %s)', (user.preferred_class(), user.nick, "0", initTime, botID))
+            cursor.execute('INSERT INTO stats VALUES (%s, %s, %s, %s, %s)', (user.game_class, user.nick, "0", initTime, botID))
             cursor.execute('COMMIT;')
 
 
@@ -1239,8 +1124,8 @@ def saveToLogs(data):
 
 
 def cmd_scramble(userName, params):
-    global scrambleList, teamA, teamB
-    if len(teamA) == 0:
+    global scrambleList
+    if len(current_game.teams[0].players) == 0:
         send("NOTICE " + userName + " :Wait until the teams are drafted to use this command.")
         return 0
     if not startGameTimer.isAlive():
@@ -1248,12 +1133,9 @@ def cmd_scramble(userName, params):
         return 0
     if (len(scrambleList) == 2 and userName not in scrambleList):
         scrambleList = []
-        teamA = []
-        teamB = []
         pastGameIndex = len(pastGames) - 1
-        for i in pastGames[pastGameIndex]['players']:
-            lobby.players[i['nick']] = i
-        buildTeams()
+        current_game.reset_teams()
+        current_game.random_teams()
         send("PRIVMSG " + config.channel + " :\x037,01Teams have been scrambled.")
     elif userName not in scrambleList:
         scrambleList.append(userName)
@@ -1286,12 +1168,9 @@ def sendStartPrivateMessages():
     teamName = ['\x0312blue\x03', '\x034red\x03']
     teamCounter = 0
     userCounter = 0
-    for teamID in ['a', 'b']:
-        team = getTeam(teamID)
-        for user in team:
-            send("PRIVMSG " + user['nick'] + " :You have been assigned to the " + teamName[teamCounter] + " team. Connect as soon as possible to this TF2 server: \"connect " + gameServer + "; password " + password + ";\". Connect as well to the voIP server, for more information type \"!mumble\" in \"#tf2.pug\".")
-            userCounter += 1
-        teamCounter += 1
+    for i, team in current_game.teams:
+        for user in team.players:
+            send("PRIVMSG " + user['nick'] + " :You have been assigned to the " + teamName[i] + " team as " + user.game_class + ". Connect as soon as possible to this TF2 server: \"connect " + gameServer + "; password " + password + ";\". Connect as well to the voIP server, for more information type \"!mumble\" in \"#tf2.pug\".")
 
 
 def setIP(userName, userCommand):
@@ -1434,13 +1313,13 @@ def cmd_need(userName, params):
     numberOfPlayersPerClass = {'demo': 2, 'medic': 2, 'scout': 4, 'soldier': 4}
     neededPlayers = 0
     captainsNeeded = 0
-    for gameClass in classList:
+    for gameClass in current_game.roster:
         if lobby.class_count(gameClass) < numberOfPlayersPerClass[gameClass]:
             needed = numberOfPlayersPerClass[gameClass] - lobby.class_count(gameClass)
             neededClasses[gameClass] = needed
             neededPlayers = neededPlayers + needed
 
-    if state == 'captain' and lobby.captain_count():
+    if state == 'captain' and lobby.captain_count() < 2:
         captainsNeeded = 2 - lobby.captain_count()
 
     if neededPlayers == 0 and captainsNeeded == 0:
@@ -1488,21 +1367,13 @@ def updateStats(address, port, score):
 
 
 def updateUserStatus(nick, escapedUserCommand):
-    numberOfMedics = 2
-    numberOfPlayers = 12
-    if len(captainStageList) == 5:
-        numberOfMedics = 1
-        numberOfPlayers = 6
-    elif getTeamSize() == 9:
-        numberOfPlayers = 18
     if re.search('^\\\\!away', escapedUserCommand) and nick in lobby.players:
         lobby.players[nick].last = time.time() - (10 * 60)
     else:
         if nick in lobby.players:
             lobby.players[nick].touch()
-        if (state == 'captain' or state == 'normal') and (lobby.class_count('demo') < 2 or lobby.class_count('scout') < 4 or lobby.class_count('soldier') < 3):
-            return 0
-        if len(lobby.players) >= numberOfPlayers and lobby.afk_count() == 0 and lobby.class_count('medic') >= numberOfMedics:
+
+        if lobby.roster_full(current_game.roster):
             initGame()
 
 
@@ -1519,9 +1390,6 @@ adminCommands = ["!endgame", "!replace", "!restart"]
 adminList = {}
 awayTimer = 0.0
 botID = 0
-captainStage = 0
-captainStageList = ['a', 'b', 'a', 'b', 'b', 'a', 'a', 'b', 'b', 'a']
-classList = ['demo', 'medic', 'scout', 'soldier']
 connectTimer = threading.Timer(0, None)
 formalTeam = ['demo', 'medic', 'scout', 'scout', 'soldier', 'soldier']
 gameServer = ''
@@ -1541,16 +1409,15 @@ pastGames = []
 printTimer = threading.Timer(0, None)
 startMode = 'automatic'
 state = 'idle'
-teamA = []
-teamB = []
 restart = 0
 scrambleList = []
 startGameTimer = threading.Timer(0, None)
 subList = []
 userCommands = ["!add", "!afk", "!captain", "!game", "!ip", "!last", "!limit", "!list", "!man", "!mumble", "!need", "!needsub", "!pick", "!players", "!remove", "!scramble", "!stats", "!status", "!sub", "!whattimeisit"]
-userLimit = 12
 voiceServer = {'ip': 'tf2pug.commandchannel.com', 'port': '31472'}
+
 lobby = game.Lobby()
+current_game = game.Game(lobby)
 
 connection = psycopg2.connect('dbname=tf2ib host=127.0.0.1 user=tf2ib password=jw8s0F4')
 
@@ -1578,7 +1445,7 @@ commandMap = {
     "!pick": cmd_pick,
     "!players": cmd_players,
     "!protect": cmd_protect,
-    "!replace": cmd_replace,
+    #"!replace": cmd_replace,
     "!remove": cmd_remove,
     "!restart": cmd_restart,
     "!restrict": cmd_restrict,
