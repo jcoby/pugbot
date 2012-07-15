@@ -150,6 +150,11 @@ def analyseIRCText(connection, event):
 def assignCaptains(mode = 'captain'):
     global teamA, teamB
     if mode == 'captain':
+        if lobby.captain_count() < 2:
+            send("PRIVMSG " + config.channel + ' :\x030,01There are not enough captains to start this game.')
+            state = "captain"
+            return
+            
         captain1 = getACaptain()
         lobby.players[captain1.nick].captain = True
         assignUserToTeam(captain1.classes[0], 0, 'a', lobby.players[captain1.nick])
@@ -661,10 +666,26 @@ def isUserCountOverLimit():
     else:
         return 1
 
+def canGameStart():
+    if state == "building" or state == "picking":
+        return False
+    
+    teams = {}    
+    if state == "normal" or state == "captain": # 6v6
+        teams = {"medic": 2, "demo": 2, "soldier": 4, "scout": 4}
+    elif state == "highlander": # 9v9
+        teams = {"scout": 2, "soldier": 2, "pyro": 2, "demo": 2, "heavy": 2, "engineer": 2, "medic": 2, "sniper": 2, "spy": 2}
+    
+    return lobby.roster_full(teams)
+    
 def initGame():
     global gameServer, initTime, initTimer, nick, pastGames, scrambleList, startGameTimer, state, teamA, teamB
     if state == 'building' or state == 'picking':
         return 0
+    
+    if not canGameStart():
+        return 0
+        
     initTime = int(time.time())
     pastGames.append({'players':[], 'server':gameServer, 'time':initTime})
     if state == "normal" or state == "highlander":
