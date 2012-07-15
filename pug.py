@@ -612,7 +612,7 @@ def isAuthorizedCaptain(userName):
     global captainStage, captainStageList, teamA, teamB
     team = getTeam(captainStageList[captainStage])
     for user in team:
-        if user['status'] == 'captain' and user['nick'] == userName:
+        if user.captain and user.nick == userName:
             return 1
     return 0
 
@@ -1058,7 +1058,7 @@ def cmd_replace(userName, userCommand):
         counter = 0
         team = getTeam(teamName)
         for user in team:
-            if user['nick'] == toReplace:
+            if user.nick == toReplace:
                 toReplace = user
                 toReplaceTeam = teamName
                 break
@@ -1070,10 +1070,10 @@ def cmd_replace(userName, userCommand):
         send("NOTICE " + userName + " : Error, the user you specified to replace is not listed in a team.")
         return 0
     if substitute in lobby.players:
-        lobby.players[substitute]['status'] = 'captain'
+        lobby.players[substitute].captain
         assignUserToTeam('medic', 0, toReplaceTeam, lobby.players[substitute])
         team[counter]['status'] = ''
-        lobby.players[team[counter]['nick']] = team[counter]
+        lobby.players[team[counter].nick] = team[counter]
         del team[counter]
     else:
         send("NOTICE " + userName + " : Error, the substitute you specified is not in the subscribed list.")
@@ -1392,7 +1392,7 @@ def updateUserStatus(nick, escapedUserCommand):
     elif getTeamSize() == 9:
         numberOfPlayers = 18
     if re.search('^\\\\!away', escapedUserCommand) and nick in lobby.players:
-        lobby.players[nick]['last'] = time.time() - (10 * 60)
+        lobby.players[nick].last = time.time() - (10 * 60)
     else:
         if nick in lobby.players:
             lobby.players[nick].touch()
