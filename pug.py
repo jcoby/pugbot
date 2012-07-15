@@ -157,14 +157,14 @@ def assignCaptains(mode = 'captain'):
             
         captain1 = getACaptain()
         lobby.players[captain1.nick].captain = True
-        assignUserToTeam(captain1.classes[0], 0, 'a', lobby.players[captain1.nick])
+        assignUserToTeam(captain1.preferred_class(), 0, 'a', lobby.players[captain1.nick])
         captain2 = getACaptain()
         lobby.players[captain2.nick].captain = True
-        assignUserToTeam(captain2.classes[0], 0, 'b', lobby.players[captain2.nick])
+        assignUserToTeam(captain2.preferred_class(), 0, 'b', lobby.players[captain2.nick])
         send("PRIVMSG " + config.channel + ' :\x030,01Captains are \x0311,01' + teamA[0].nick + '\x030,01 and \x034,01' + teamB[0].nick + "\x030,01.")
     elif mode == 'scrim':
         captain1 = getACaptain()
-        assignUserToTeam(captain1.classes[0], 0, 'a', lobby.players[captain1.nick])
+        assignUserToTeam(captain1.preferred_class(), 0, 'a', lobby.players[captain1.nick])
         send("PRIVMSG " + config.channel + ' :\x030,01Captain is \x0308,01' + teamA[0].nick + '\x030,01.')
     printCaptainChoices()
 
@@ -392,7 +392,7 @@ def getACaptain():
         else:
             player = random.choice(otherCaptains)
         if len(player.classes) > 0:
-            player.classes = [player['class'][0]]
+            player.classes = [player.preferred_class()]
         else:
             player.classes = ['scout']
     else:
@@ -405,7 +405,7 @@ def getAPlayer(playerType):
     candidateList = []
     for nick, player in lobby.players.iteritems():
         forcedList.append(nick)
-        if len(player.classes) > 0 and playerType == player.classes[0]:
+        if len(player.classes) > 0 and playerType == player.preferred_class():
             candidateList.append(player)
     if len(candidateList) > 0:
         return random.choice(candidateList)
@@ -514,8 +514,8 @@ def getRemainingClasses():
     remainingClasses = formalTeam[:]
     team = getTeam(captainStageList[captainStage])
     for user in team:
-        if user.classes[0] in remainingClasses:
-            remainingClasses.remove(user.classes[0])
+        if user.preferred_class() in remainingClasses:
+            remainingClasses.remove(user.preferred_class())
     uniqueRemainingClasses = {}
     for gameClass in remainingClasses:
         uniqueRemainingClasses[gameClass] = gameClass
@@ -1135,10 +1135,10 @@ def saveStats():
     for teamID in ['a', 'b']:
         team = getTeam(teamID)
         for user in team:
-            if len(user['class']) == 0:
-                user['class'] = ['']
+            if len(user.classes) == 0:
+                user.classes = ['']
             cursor = connection.cursor()
-            cursor.execute('INSERT INTO stats VALUES (%s, %s, %s, %s, %s)', (user['class'][0], user['nick'], "0", initTime, botID))
+            cursor.execute('INSERT INTO stats VALUES (%s, %s, %s, %s, %s)', (user.preferred_class(), user.nick, "0", initTime, botID))
             cursor.execute('COMMIT;')
 
 def saveToLogs(data):

@@ -91,6 +91,10 @@ class Player:
 
     def is_class(self, cls):
         return cls in self.classes
+    
+    def preferred_class(self):
+        """get the player's preferred class"""
+        return self.classes[0]
 
     def touch(self):
         self.last = time.time()
