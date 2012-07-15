@@ -704,13 +704,13 @@ def initGame():
         state = 'picking'
         initTimer = threading.Timer(45, assignCaptains, ['captain'])
         initTimer.start()
-        cmd_players(nick, '')
+        cmd_list(nick, '')
     elif state == "scrim":
         send("PRIVMSG " + config.channel + " :\x038,01Team is being drafted, please wait in the channel until this process is over.")
         state = 'picking'
         initTimer = threading.Timer(45, assignCaptains, ['scrim'])
         initTimer.start()
-        cmd_players(nick, '')
+        cmd_list(nick, '')
 
 def initServer():
     global gameServer, lastGame
