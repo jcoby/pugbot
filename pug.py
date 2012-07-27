@@ -27,7 +27,7 @@ def cmd_add(userName, userCommand):
      #   if not userAuthorizationLevel:
       #      send("NOTICE " + userName + " : You must be authorized by an admin to PUG here. Ask any peons or any admins to allow you the access to add to the PUGs. The best way to do it is by asking directly in the channel or by asking a friend that has the authorization to do it. If you used to have access, type \"!stats me\" in order to find who deleted your access and talk with him in order to get it back.")
        #     return 0
-        if state == 'captain' or state == 'highlander' or state == 'normal':
+        if state == 'captain' or state == 'normal':
             if ((len(lobby.players) == (current_game.player_limit - 1) and lobby.class_count('medic') == 0) or (len(lobby.players) == (current_game.player_limit - 1) and lobby.class_count('medic') <= 1)) and not isMedic(userCommand):
                 if not userName in lobby.players:
                     if userAuthorizationLevel == 3:
@@ -66,18 +66,6 @@ def cmd_add(userName, userCommand):
                     initGame()
                 elif type(awayTimer).__name__ == 'float':
                     sendMessageToAwayPlayers()
-        elif state == 'scrim':
-            if len(lobby.players) == (current_game.player_limit - 2) and lobby.class_count('medic') == 0 and not isMedic(userCommand):
-                send("NOTICE " + userName + " : The only class available is medic. Type \"!add medic\" to join this round as this class.")
-                return 0
-            print "User add : " + userName + "  Command : " + userCommand
-            lobby.players[userName] = createUser(userName, userCommand, userAuthorizationLevel)
-            printUserList()
-            if len(lobby.players) >= 6 and lobby.class_count('medic') > 0:
-                if lobby.afk_count() == 0:
-                    initGame()
-                elif type(awayTimer).__name__ == 'float':
-                    sendMessageToAwayPlayers()
         elif state == 'picking':
             if initTimer.isAlive():
                 if isInATeam(userName):
@@ -103,18 +91,12 @@ def cmd_addgame(userName, userCommand):
         return 0
 
     standard_roster = {'demo': 2, 'medic': 2, 'scout': 4, 'soldier': 4}
-    highlander_roster = {'demo': 2, 'engineer': 2, 'heavy': 2, 'medic': 2, 'pyro': 2, 'scout': 2, 'sniper': 2, 'soldier': 2, 'spy': 2}
     # Game type.
     if re.search('captain', userCommand):
         lastGameType = 'captain'
         state = 'captain'
         current_game.roster = standard_roster
         current_game.player_limit = 24
-    elif re.search('highlander', userCommand):
-        lastGameType = 'highlander'
-        state = 'highlander'
-        current_game.roster = highlander_roster
-        current_game.player_limit = 18
     else:
         lastGameType = 'normal'
         state = 'normal'
@@ -169,10 +151,6 @@ def assignCaptains(mode='captain'):
 
         current_game.assign_captains()
         send("PRIVMSG " + config.channel + ' :\x030,01Captains are \x0311,01' + current_game.teams[0].captain.nick + '\x030,01 and \x034,01' + current_game.teams[1].captain.nick + "\x030,01.")
-    # elif mode == 'scrim':
-    #     captain1 = getACaptain()
-    #     assignUserToTeam(captain1.preferred_class(), 0, 'a', lobby.players[captain1.nick])
-    #     send("PRIVMSG " + config.channel + ' :\x030,01Captain is \x0308,01' + teamA[0].nick + '\x030,01.')
     printCaptainChoices()
 
 
@@ -365,16 +343,7 @@ def cmd_game(userName, userCommand):
     #     send("PRIVMSG " + config.channel + " :\x030,01Warning " + userName + ", you are trying an admin command as a normal user.")
     #     return 0
     # if mode[1] == 'captain':
-    #     if state == 'scrim':
-    #         state = 'captain'
-    #     else:
-    #         send("NOTICE " + userName + " :You can't switch the game mode in this bot state.")
-    # elif mode[1] == 'scrim':
-    #     if state == 'captain':
-    #         captainStageList = ['a', 'a', 'a', 'a', 'a']
-    #         state = 'scrim'
-    #     else:
-    #         send("NOTICE " + userName + " :You can't switch the game mode in this bot state.")
+    #     send("NOTICE " + userName + " :You can't switch the game mode in this bot state.")
 
 
 def getAuthorizationStatus(userName):
@@ -644,7 +613,7 @@ def initGame():
 
     initTime = int(time.time())
     pastGames.append({'players': [], 'server': gameServer, 'time': initTime})
-    if state == "normal" or state == "highlander":
+    if state == "normal"
         scrambleList = []
         send("PRIVMSG " + config.channel + " :\x038,01Teams are being drafted, please wait in the channel until this process is over.")
         send("PRIVMSG " + config.channel + " :\x037,01If you find teams unfair you can type \"!scramble\" and they will be adjusted.")
@@ -659,12 +628,6 @@ def initGame():
         send("PRIVMSG " + config.channel + " :\x038,01Teams are being drafted, please wait in the channel until this process is over.")
         state = 'picking'
         initTimer = threading.Timer(45, assignCaptains, ['captain'])
-        initTimer.start()
-        cmd_list(nick, '')
-    elif state == "scrim":
-        send("PRIVMSG " + config.channel + " :\x038,01Team is being drafted, please wait in the channel until this process is over.")
-        state = 'picking'
-        initTimer = threading.Timer(45, assignCaptains, ['scrim'])
         initTimer.start()
         cmd_list(nick, '')
 
@@ -845,7 +808,7 @@ def cmd_pick(userName, userCommand):
         send("NOTICE " + userName + " : Error, this user doesn\'t exist.")
         return 0
 
-    if lastGameType != 'scrim' and not oppositeTeamHasMedic and medicsRemaining == 1 and 'medic' in player.classes:
+    if not oppositeTeamHasMedic and medicsRemaining == 1 and 'medic' in player.classes:
         send("NOTICE " + userName + " : Error, you can't pick the last medic if you already have one.")
         return 0
 
@@ -939,10 +902,7 @@ def printTeams():
     globalstate
     teamNames = ['Blu', 'Red']
     colors = ['\x0311,01', '\x034,01']
-    # else:
-    #     teamNames = ['Scrim']
-    #     colors = ['\x0308,01']
-    #     teams = [current_game.teams[0]]
+
     counter = 0
     for counter, team in enumerate(current_game.teams):
         message = colors[counter] + teamNames[counter] + "\x030,01 : "
@@ -1192,7 +1152,7 @@ def setStartMode(mode):
 def startGame():
     global gameServer, initTime, state
     state = 'idle'
-    if lastGameType != 'normal' and lastGameType != 'highlander':
+    if lastGameType != 'normal':
         printTeams()
     initServer()
     saveStats()
@@ -1478,7 +1438,7 @@ thread.start_new_thread(listeningTF2Servers, ())
 # Jump into an infinite loop
 while not restart:
     irc.process_once(0.2)
-    if time.time() - minuteTimer > 60:
+    if time.time() - minuteTimer > 15:
         minuteTimer = time.time()
         checkConnection()
         printSubs()
