@@ -130,7 +130,7 @@ class TestGameMethods(unittest.TestCase):
         self.game.assign_captains()
         
         for i, pick in enumerate(range(10)):
-            self.assertEqual(self.game.captain_picks_remaining(), 10 - i)
+            self.assertEqual(self.game.captain_picks_remaining(), 10 - i - 1)
             self.game.next_captain()
             
         

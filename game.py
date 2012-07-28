@@ -54,10 +54,12 @@ class Game:
         if self.captain_pick is None:
             return 0
         
-        return len(self.captain_pick_order) - self.captain_pick
+        return len(self.captain_pick_order) - self.captain_pick - 1
         
     def next_captain(self):
         self.captain_pick += 1
+        if self.captain_pick >= len(self.captain_pick_order):
+            self.captain_pick = None
         
     def random_teams(self):
         for team in range(2):

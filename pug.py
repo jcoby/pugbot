@@ -21,12 +21,9 @@ def cmd_add(userName, userCommand):
     print "State : " + state
     userAuthorizationLevel = isAuthorizedToAdd(userName)
     if state != 'idle':
-        winStats = getWinStats(userName)
-        medicStats = getMedicStats(userName)
-        print medicStats
-     #   if not userAuthorizationLevel:
-      #      send("NOTICE " + userName + " : You must be authorized by an admin to PUG here. Ask any peons or any admins to allow you the access to add to the PUGs. The best way to do it is by asking directly in the channel or by asking a friend that has the authorization to do it. If you used to have access, type \"!stats me\" in order to find who deleted your access and talk with him in order to get it back.")
-       #     return 0
+        #   if not userAuthorizationLevel:
+        #      send("NOTICE " + userName + " : You must be authorized by an admin to PUG here. Ask any peons or any admins to allow you the access to add to the PUGs. The best way to do it is by asking directly in the channel or by asking a friend that has the authorization to do it. If you used to have access, type \"!stats me\" in order to find who deleted your access and talk with him in order to get it back.")
+        #     return 0
         if state == 'captain' or state == 'normal':
             if ((len(lobby.players) == (current_game.player_limit - 1) and lobby.class_count('medic') == 0) or (len(lobby.players) == (current_game.player_limit - 1) and lobby.class_count('medic') <= 1)) and not isMedic(userCommand):
                 if not userName in lobby.players:
@@ -100,7 +97,7 @@ def cmd_addgame(userName, userCommand):
     else:
         lastGameType = 'normal'
         state = 'normal'
-        curent_game.roster = standard_roster
+        current_game.roster = standard_roster
         current_game.player_limit = 12
 
     updateLast(gameServer.split(':')[0], gameServer.split(':')[1], -(time.time()))
@@ -160,6 +157,7 @@ def assignUserToTeam(gameClass, team, user):
     else:
         user.classes = []
 
+    user.game_class = gameClass
     team.players.append(user)
 
     pastGames[len(pastGames) - 1]['players'].append(lobby.players[user.nick])
@@ -221,7 +219,7 @@ def buildTeams():
 
 def cmd_captain(userName, params):
     if current_game.current_captain():
-        send("PRIVMSG " + config.channel + ' :\x030,01Captain picking turn is to ' + current_game.current_captain.nick + '.')
+        send("PRIVMSG " + config.channel + ' :\x030,01Captain picking turn is to ' + current_game.current_captain().nick + '.')
     else:
         send("PRIVMSG " + config.channel + ' :\x030,01Picking process has not been started yet.')
 
@@ -451,7 +449,7 @@ def getRemainingClasses():
     team = current_game.current_captain_team()
     for user in team.players:
         if user.game_class in remainingClasses:
-            remainingClasses.remove(user.preferred_class())
+            remainingClasses.remove(user.game_class)
     uniqueRemainingClasses = {}
     for gameClass in remainingClasses:
         uniqueRemainingClasses[gameClass] = gameClass
@@ -613,7 +611,7 @@ def initGame():
 
     initTime = int(time.time())
     pastGames.append({'players': [], 'server': gameServer, 'time': initTime})
-    if state == "normal"
+    if state == "normal":
         scrambleList = []
         send("PRIVMSG " + config.channel + " :\x038,01Teams are being drafted, please wait in the channel until this process is over.")
         send("PRIVMSG " + config.channel + " :\x037,01If you find teams unfair you can type \"!scramble\" and they will be adjusted.")
@@ -766,7 +764,6 @@ def nickchange(connection, event):
 
 
 def cmd_pick(userName, userCommand):
-    global state
     if current_game.current_captain() is None:
         send("NOTICE " + userName + " : The selection is not started yet.")
         return
@@ -899,7 +896,6 @@ def printSubs():
 
 
 def printTeams():
-    globalstate
     teamNames = ['Blu', 'Red']
     colors = ['\x0311,01', '\x034,01']
 
@@ -1069,7 +1065,7 @@ def saveStats():
     global connection, initTime
     teamName = ['\x0312blue\x031', '\x034red\x031']
     for team in current_game.teams:
-        for user in team:
+        for user in team.players:
             cursor = connection.cursor()
             cursor.execute('INSERT INTO stats VALUES (%s, %s, %s, %s, %s)', (user.game_class, user.nick, "0", initTime, botID))
             cursor.execute('COMMIT;')
@@ -1128,9 +1124,9 @@ def sendStartPrivateMessages():
     teamName = ['\x0312blue\x03', '\x034red\x03']
     teamCounter = 0
     userCounter = 0
-    for i, team in current_game.teams:
+    for i, team in enumerate(current_game.teams):
         for user in team.players:
-            send("PRIVMSG " + user['nick'] + " :You have been assigned to the " + teamName[i] + " team as " + user.game_class + ". Connect as soon as possible to this TF2 server: \"connect " + gameServer + "; password " + password + ";\". Connect as well to the voIP server, for more information type \"!mumble\" in \"#tf2.pug\".")
+            send("PRIVMSG " + user.nick + " :You have been assigned to the " + teamName[i] + " team as " + user.game_class + ". Connect as soon as possible to this TF2 server: \"connect " + gameServer + "; password " + password + ";\". Connect as well to the voIP server, for more information type \"!mumble\" in \"#tf2.pug\".")
 
 
 def setIP(userName, userCommand):
