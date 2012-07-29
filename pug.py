@@ -122,7 +122,7 @@ def cmd_add(userName, userCommand):
                         return 0
                     elif userAuthorizationLevel == 3 and not isUser(userName):
                         current_game.player_limit = current_game.player_limit + 1
-                lobby.players[userName] = createUser(userName, userCommand, userAuthorizationLevel)
+                lobby.add(createUser(userName, userCommand, userAuthorizationLevel))
                 printUserList()
             else:
                 send("NOTICE " + userName + " : You can't add during the picking process.")
@@ -533,7 +533,7 @@ def getTeamSize():
 def getUserCount():
     counter = len(lobby.players)
     for team in current_game.teams:
-        counter += len(current_game.teams[team])
+        counter += len(team.players)
 
     return counter
 
