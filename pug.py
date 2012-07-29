@@ -1000,38 +1000,37 @@ def printUserList():
 def cmd_protect(userName, userCommand):
     cmd_authorize(userName, userCommand, 2)
 
-# @admin_command
-# def cmd_replace(userName, userCommand):
-#     commandList = string.split(userCommand, ' ')
-#     if len(commandList) < 2:
-#         send("NOTICE " + userName + " : Error, there is not enough arguments in your \"!replace\" command. Example: \"!replace toreplace substitute\".")
-#         return 0
-#     toReplace = commandList[0]
-#     substitute = commandList[1]
-#     for team in current_game.teams
-#         if type(toReplace) == type({}):
-#             break
-#         counter = 0
-#
-#         for user in team.players:
-#             if user.nick == toReplace:
-#                 toReplace = user
-#                 toReplaceTeam = teamName
-#                 break
-#             counter += 1
-#     if type(toReplace) == type({}):
-#         gameClass = toReplace['class']
-#         toReplace.classes = extractClasses(toReplace['command'])
-#     else:
-#         send("NOTICE " + userName + " : Error, the user you specified to replace is not listed in a team.")
-#         return 0
-#
-#     if substitute in lobby.players:
-#         lobby.players[substitute].captain
-#         assignUserToTeam('medic', 0, toReplaceTeam, lobby.players[substitute])
-#     else:
-#         send("NOTICE " + userName + " : Error, the substitute you specified is not in the subscribed list.")
-#     return 0
+@admin_command
+def cmd_replace(userName, userCommand):
+    commandList = string.split(userCommand, ' ')
+    if len(commandList) < 2:
+        send("NOTICE " + userName + " : Error, there is not enough arguments in your \"!replace\" command. Example: \"!replace player substitute\".")
+        return 0
+    playerNick = commandList[0]
+    substituteNick = commandList[1]
+    player = None
+    substituteTeam = None
+    
+    for team in current_game.teams:
+        for user in team.players:
+            if user.nick == playerNick:
+                player = user
+                substituteTeam = team
+                break
+
+    if not player:
+        send("NOTICE " + userName + " : Error, the user you specified to replace is not listed in a team.")
+        return False
+
+    if substitute in lobby.players:
+        lobby.players[substituteNick].captain = player.captain
+        lobby.players[substituteNick].game_class = player.game_class
+        assignUserToTeam(player.game_class, substituteTeam, lobby.players[substituteNick])
+        
+        send("NOTICE " + userName + " : The player has been replaced")
+        send("NOTICE %s : You have replaced %s as %s." % (substituteNick, player.nick, player.game_class))
+    else:
+        send("NOTICE " + userName + " : Error, the substitute you specified is not in the subscribed list.")
 
 
 def cmd_remove(userName, params=''):
@@ -1435,7 +1434,7 @@ commandMap = {
     "!pick": cmd_pick,
     "!players": cmd_players,
     "!protect": cmd_protect,
-    #"!replace": cmd_replace,
+    "!replace": cmd_replace,
     "!remove": cmd_remove,
     "!restart": cmd_restart,
     "!restrict": cmd_restrict,
