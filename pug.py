@@ -15,6 +15,14 @@ import game
 
 #irclib.DEBUG = 1
 
+def admin_command(fn):
+    def wrapper(userName, userCommand):
+        if isAdmin(userName):
+            return fn(userName, userCommand)
+        else:
+            send("PRIVMSG " + config.channel + " :\x030,01Warning " + userName + ", you are trying an admin command as a normal user.")
+    
+    return wrapper
 
 def cmd_add(userName, userCommand):
     global state
@@ -128,15 +136,7 @@ def analyseIRCText(connection, event):
     #print match.groupdict()
     #print userName, command, params
 
-    if isAdminCommand(userName, command):
-        if isAdmin(userName):
-            #Execute the admin command.
-            executeCommand(userName, command, params.strip())
-        else:
-            # Exit and report an error.
-            send("PRIVMSG " + config.channel + " :\x030,01Warning " + userName + ", you are trying an admin command as a normal user.")
-    elif isUserCommand(userName, command):
-            executeCommand(userName, command, params.strip())
+    executeCommand(userName, command, params.strip())
 
 
 def assignCaptains(mode='captain'):
@@ -282,6 +282,7 @@ def drop(connection, event):
     lobby.remove(userName)
 
 
+@admin_command
 def cmd_endgame(userName, params):
     global gameServer, initTimer, state
     initTimer.cancel()
@@ -504,11 +505,10 @@ def getWinStats(userName):
 
 
 def cmd_man(userName, params):
-    global adminCommands, userCommands
     send("PRIVMSG " + config.channel + " : \x0311,01User related commands:\x030,01 !add, !game, !ip, !last, !limit, !list, !man, !mumble, !need, !needsub, !players, !remove, !scramble, !stats, !status, !sub")
     send("PRIVMSG " + config.channel + " : \x0311,01Captain related commands:\x030,01 !captain, !pick")
     if isAdmin(userName):
-        send("PRIVMSG %s : \x0311,01Admin related commands:\x030,01 %s" % (config.channel, ", ".join(adminCommands)))
+        send("PRIVMSG %s : \x0311,01Admin related commands:\x030,01 !endgame, !replace, !restart" % (config.channel,))
 
 
 def cmd_ip(userName, userCommand):
@@ -534,16 +534,6 @@ def isAdmin(userName):
         return adminList[userName]
     else:
         return 0
-
-
-def isAdminCommand(userName, userCommand):
-    global adminCommands
-    userCommand = string.split(userCommand, ' ')[0]
-    userCommand = removeLastEscapeCharacter(userCommand)
-    for command in adminCommands:
-        if command == userCommand:
-            return 1
-    return 0
 
 
 def isAuthorizedCaptain(userName):
@@ -968,7 +958,7 @@ def printUserList():
 def cmd_protect(userName, userCommand):
     cmd_authorize(userName, userCommand, 2)
 
-
+# @admin_command
 # def cmd_replace(userName, userCommand):
 #     commandList = string.split(userCommand, ' ')
 #     if len(commandList) < 2:
@@ -1052,6 +1042,7 @@ def resetVariables():
     print 'Reset variables.'
 
 
+@admin_command
 def cmd_restart():
     global restart
     restart = 1
@@ -1342,7 +1333,6 @@ def welcome(connection, event):
 nick = 'PUG-BOT'
 name = 'BOT'
 
-adminCommands = ["!endgame", "!replace", "!restart"]
 adminList = {}
 awayTimer = 0.0
 botID = 0
