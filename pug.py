@@ -24,6 +24,48 @@ def admin_command(fn):
     
     return wrapper
 
+
+@admin_command
+def cmd_fadd(userName, userCommand):
+    """!fadd user class1 class2"""
+    params = userCommand.split(' ')
+    if len(params) < 2:
+        send("NOTICE " + userName + " : " + "Error! You need to specify a nick and a class. Example: \"!fadd player1 scout\".")
+        return False
+        
+    userAuthorizationLevel = isAuthorizedToAdd(params[0])
+    p = createUser(params[0], ' '.join(params), userAuthorizationLevel)
+    p.last = 0 # mark the player as afk to make sure they are around
+    if len(p.classes) == 0:
+        send("NOTICE " + userName + " : " + "Error! You need to specify a class. Example: \"!fadd scout\".")
+        return False
+    elif len(p.classes) > 1:
+        send("NOTICE " + userName + " : " + "Error! You can only add as one class.")
+        return False
+    elif p.preferred_class() not in getAvailableClasses():
+        send("NOTICE " + userName + " : The class you specified is not in the available class list: " + ", ".join(getAvailableClasses()) + ".")
+        return False
+    
+    for team in current_game.teams:
+        if p.nick in team.players:
+            send("NOTICE " + userName + " : The player has already been picked for a team.")
+            return False
+            
+    lobby.add(p)
+    send("NOTICE %s : You have been subscribed to the picking process as: %s. Please type something in the channel to verify that you want to play." % (p.nick, ', '.join(p.classes)))
+    send("NOTICE %s : You sucessfully subscribed %s to the picking process as: %s" % (userName, p.nick, ', '.join(p.classes)))
+
+
+@admin_command
+def cmd_fremove(userName, userCommand):
+    nick = userCommand
+    
+    if nick in lobby.players:
+        lobby.remove(nick)
+        send("NOTICE %s : You sucessfully removed %s from the picking process." % (userName, nick))
+    else:
+        send("NOTICE %s : %s has not added or has already been picked for a team." % (userName, nick))
+    
 def cmd_add(userName, userCommand):
     global state
     print "State : " + state
@@ -508,7 +550,7 @@ def cmd_man(userName, params):
     send("PRIVMSG " + config.channel + " : \x0311,01User related commands:\x030,01 !add, !game, !ip, !last, !limit, !list, !man, !mumble, !need, !needsub, !players, !remove, !scramble, !stats, !status, !sub")
     send("PRIVMSG " + config.channel + " : \x0311,01Captain related commands:\x030,01 !captain, !pick")
     if isAdmin(userName):
-        send("PRIVMSG %s : \x0311,01Admin related commands:\x030,01 !endgame, !replace, !restart" % (config.channel,))
+        send("PRIVMSG %s : \x0311,01Admin related commands:\x030,01 !endgame, !fadd, !fremove, !replace, !restart" % (config.channel,))
 
 
 def cmd_ip(userName, userCommand):
@@ -1377,6 +1419,8 @@ commandMap = {
     "!automatic": cmd_automatic,
     "!captain": cmd_captain,
     "!endgame": cmd_endgame,
+    "!fadd": cmd_fadd,
+    "!fremove": cmd_fremove,
     "!game": cmd_game,
     "!ip": cmd_ip,
     "!last": cmd_last,
