@@ -246,6 +246,11 @@ def autoGameStart():
     cursor = connection.cursor()
     cursor.execute('UPDATE servers SET last = 0 WHERE last < 0 AND botID = %s', (botID,))
     cursor.execute('COMMIT;')
+    
+    if not server:
+        print "no server available to start a game."
+        return
+        
     if lastGameType == 'captain':
         lastGameType = 'normal'
     elif lastGameType == 'normal':
