@@ -42,8 +42,8 @@ def cmd_fadd(userName, userCommand):
     elif len(p.classes) > 1:
         send("NOTICE " + userName + " : " + "Error! You can only add as one class.")
         return False
-    elif p.preferred_class() not in getAvailableClasses():
-        send("NOTICE " + userName + " : The class you specified is not in the available class list: " + ", ".join(getAvailableClasses()) + ".")
+    elif p.preferred_class() not in current_game.roster:
+        send("NOTICE " + userName + " : The class you specified is not in the available class list: " + ", ".join(current_game.roster.keys()) + ".")
         return False
     
     for team in current_game.teams:
@@ -92,7 +92,11 @@ def cmd_add(userName, userCommand):
             elif len(extractClasses(userCommand)) > 1:
                 send("NOTICE " + userName + " : " + "Error! You can only add as one class.")
                 return 0
-            elif extractClasses(userCommand)[0] not in getAvailableClasses():
+            elif extractClasses(userCommand)[0] not in current_game.roster:
+                send("NOTICE " + userName + " : The class you specified is not in the available class list: " + ", ".join(current_game.roster.keys()) + ".")
+                return 0
+            
+            if state == 'normal' and extractClasses(userCommand)[0] not in getAvailableClasses():
                 send("NOTICE " + userName + " : The class you specified is not in the available class list: " + ", ".join(getAvailableClasses()) + ".")
                 return 0
 
