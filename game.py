@@ -105,9 +105,12 @@ class Lobby:
 
         return playerid + 1
 
-    def class_count(self, cls):
+    def class_count(self, cls, include_afk=True, seconds=420):
         count = 0
         for nick, player in self.players.iteritems():
+            if include_afk == False and player.last < time.time() - seconds:
+                continue
+
             if cls in player.classes:
                 count = count + 1
         return count
@@ -143,7 +146,7 @@ class Lobby:
         players_needed = 0
         for cls, count in roster.iteritems():
             players_needed = players_needed + count
-            if self.class_count(cls) < count:
+            if self.class_count(cls, include_afk=False) < count:
                 return False
 
         return players_needed <= self.player_count()
